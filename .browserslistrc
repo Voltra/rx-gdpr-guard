@@ -1,0 +1,6 @@
+defaults
+not IE_Mob 11
+last 4 versions
+iOS >= 13
+Android >= 9
+Safari >= 12
