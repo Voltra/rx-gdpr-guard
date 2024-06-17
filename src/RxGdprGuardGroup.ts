@@ -9,9 +9,9 @@ import { RxGdprGuard } from "./RxGdprGuard";
  * @invariant After construction of an instance: this.underlyingGroup.getGuards().every(x => x instanceof RxGdprGuard)
  */
 export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGuardGroupRaw> {
-	private _raw$ = new Subject<GdprGuardGroupRaw>();
-	private _enabled$ = new BehaviorSubject(false);
-	private _required$ = new BehaviorSubject(false);
+	#raw$ = new Subject<GdprGuardGroupRaw>();
+	#enabled$ = new BehaviorSubject(false);
+	#required$ = new BehaviorSubject(false);
 
 	/**
 	 * An observable that emits the new value of {@link GdprGuardGroup#raw} as it changes
@@ -70,15 +70,15 @@ export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGu
 				this.underlyingGroup.addGuard(wrapped);
 			});
 
-		this.raw$ = this._raw$.pipe(
+		this.raw$ = this.#raw$.pipe(
 			distinctUntilChanged(deepEquals),
 		);
 
-		this.enabled$ = this._enabled$.pipe(
+		this.enabled$ = this.#enabled$.pipe(
 			distinctUntilChanged(),
 		);
 
-		this.required$ = this._required$.pipe(
+		this.required$ = this.#required$.pipe(
 			distinctUntilChanged(),
 		);
 	}
@@ -95,7 +95,7 @@ export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGu
 		this.description = this.underlyingGroup.description;
 		this.required = this.underlyingGroup.required;
 
-		this._raw$.next(this.raw());
+		this.#raw$.next(this.raw());
 	}
 
 	public lens<DerivedState>(derive: (guard: GdprGuardRaw) => DerivedState): Observable<DerivedState> {
