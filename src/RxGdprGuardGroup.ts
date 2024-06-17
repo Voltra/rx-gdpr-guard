@@ -14,7 +14,7 @@ export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGu
 	#required$ = new BehaviorSubject(false);
 
 	/**
-	 * An observable that emits the new value of {@link GdprGuardGroup#raw} as it changes
+	 * An observable that emits the new result of {@link GdprGuardGroup#raw} as it changes
 	 * @warning It only emits (deeply) distinct values
 	 */
 	public readonly raw$: Observable<GdprGuardGroupRaw>;
@@ -32,7 +32,7 @@ export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGu
 	public readonly required$: Observable<boolean>;
 
 	/**
-	 * Wrap the {@link GdprGuardGroup} into a {@link RxGdprGuardGroup} instance
+	 * Wrap the {@link GdprGuardGroup} into an {@link RxGdprGuardGroup} instance
 	 * @param group - The group to wrap
 	 */
 	public static wrap(group: GdprGuardGroup): RxGdprGuardGroup {
@@ -44,7 +44,7 @@ export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGu
 	}
 
 	/**
-	 * Wrap the {@link GdprGuardGroup} into a {@link RxGdprGuardGroup} instance
+	 * Wrap the {@link GdprGuardGroup} into an {@link RxGdprGuardGroup} instance
 	 * @alias wrap
 	 * @param group - The group to decorate
 	 */

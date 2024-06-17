@@ -39,7 +39,7 @@ export class RxGdprGuard implements GdprGuard, RxWrapper<GdprGuardRaw> {
 	public readonly required$: Observable<boolean>;
 
 	/**
-	 * An observable that emits the new value of {@link GdprGuard#raw} as it changes
+	 * An observable that emits the new result of {@link GdprGuard#raw} as it changes
 	 * @warning It only emits (deeply) distinct values
 	 */
 	public readonly raw$: Observable<GdprGuardRaw>;
