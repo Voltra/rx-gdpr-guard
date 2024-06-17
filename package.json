@@ -28,6 +28,7 @@
 		"dev": "webpack --mode development",
 		"build": "webpack --mode production",
 		"watch": "webpack --mode development --watch",
+		"test": "vitest",
 		"predocs": "([[ -d ./docs ]] && rm -rf ./docs) || true",
 		"docs": "typedoc --options typedoc.config.js",
 		"predeploy:docs": "npm run docs",
@@ -46,6 +47,8 @@
 		"ts-loader": "^9.5.1",
 		"typedoc": "^0.25.13",
 		"typescript": "^5.4.5",
+		"vite": "^5.3.1",
+		"vitest": "^1.6.0",
 		"webpack": "^5.92.0",
 		"webpack-cli": "^5.1.4"
 	}

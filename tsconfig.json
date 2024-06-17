@@ -1,4 +1,5 @@
 {
+	"include": ["src/**/*"],
 	"compilerOptions": {
 		/* Visit https://aka.ms/tsconfig to read more about this file */
 
@@ -35,7 +36,7 @@
 		/* Modules */
 		"module": "commonjs",
 		/* Specify what module code is generated. */
-		"rootDir": "./src",
+		"rootDir": ".",
 		/* Specify the root folder within your source files. */
 		// "moduleResolution": "node10",                     /* Specify how TypeScript looks up a file from a given module specifier. */
 		// "baseUrl": "./",                                  /* Specify the base directory to resolve non-relative module names. */
@@ -114,7 +115,8 @@
 		/* Check for class properties that are declared but not set in the constructor. */
 		"noImplicitThis": true,
 		/* Enable error reporting when 'this' is given the type 'any'. */
-		// "useUnknownInCatchVariables": true,               /* Default catch clause variables as 'unknown' instead of 'any'. */
+		"useUnknownInCatchVariables": true,
+		/* Default catch clause variables as 'unknown' instead of 'any'. */
 		"alwaysStrict": true,
 		/* Ensure 'use strict' is always emitted. */
 		// "noUnusedLocals": true,                           /* Enable error reporting when local variables aren't read. */
