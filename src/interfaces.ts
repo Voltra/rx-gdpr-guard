@@ -2,7 +2,7 @@ import type { GdprGuardRaw, GdprManagerRaw } from "gdpr-guard";
 import type { Observable, ObservableInput } from "rxjs";
 
 export interface RxWrapper<Raw extends GdprGuardRaw | GdprManagerRaw> {
-	get raw$(): Observable<Raw>;
+	readonly raw$: Observable<Raw>;
 
 	/**
 	 * Create a lens into the guard's raw state
