@@ -22,40 +22,32 @@ export class RxGdprGuard implements GdprGuard, RxWrapper<GdprGuardRaw> {
 	// @ts-ignore TS2564
 	public required: boolean;
 
-	protected _enabled$ = new BehaviorSubject(false);
-	protected _required$ = new BehaviorSubject(false);
-	protected _raw$ = new Subject<GdprGuardRaw>();
+	#enabled$ = new BehaviorSubject(false);
+	#required$ = new BehaviorSubject(false);
+	#raw$ = new Subject<GdprGuardRaw>();
 
 	/**
 	 * An observable that emits the new value of {@link GdprGuard#enabled} as it changes
 	 * @warning It only emits distinct values
 	 */
-	public get enabled$(): Observable<boolean> {
-		return this._enabled$.pipe(
-			distinctUntilChanged(),
-		);
-	}
+	public readonly enabled$: Observable<boolean>;
 
 	/**
 	 * An observable that emits the new value of {@link GdprGuard#required} as it changes
 	 * @warning It only emits distinct values
 	 */
-	public get required$(): Observable<boolean> {
-		return this._required$.pipe(
-			distinctUntilChanged(),
-		);
-	}
+	public readonly required$: Observable<boolean>;
 
 	/**
 	 * An observable that emits the new value of {@link GdprGuard#raw} as it changes
 	 * @warning It only emits (deeply) distinct values
 	 */
-	public get raw$(): Observable<GdprGuardRaw> {
-		return this._raw$.pipe(
-			distinctUntilChanged(deepEquals),
-		);
-	}
+	public readonly raw$: Observable<GdprGuardRaw>;
 
+	/**
+	 * Wrap the {@link GdprGuard} into a {@link RxGdprGuard} instance
+	 * @param guard - The guard to wrap
+	 */
 	public static wrap(guard: GdprGuard): RxGdprGuard {
 		if (guard instanceof RxGdprGuard) {
 			return guard;
@@ -64,6 +56,11 @@ export class RxGdprGuard implements GdprGuard, RxWrapper<GdprGuardRaw> {
 		return new RxGdprGuard(guard);
 	}
 
+	/**
+	 * Wrap the {@link GdprGuard} into a {@link RxGdprGuard} instance
+	 * @alias wrap
+	 * @param guard - The guard to decorate
+	 */
 	public static decorate(guard: GdprGuard): RxGdprGuard {
 		return this.wrap(guard);
 	}
@@ -71,6 +68,18 @@ export class RxGdprGuard implements GdprGuard, RxWrapper<GdprGuardRaw> {
 	protected constructor(
 		private underlyingGuard: GdprGuard,
 	) {
+		this.enabled$ = this.#enabled$.pipe(
+			distinctUntilChanged(),
+		);
+
+		this.required$ = this.#required$.pipe(
+			distinctUntilChanged(),
+		);
+
+		this.raw$ = this.#raw$.pipe(
+			distinctUntilChanged(deepEquals),
+		);
+
 		this.syncWithUnderlying();
 	}
 
@@ -82,14 +91,14 @@ export class RxGdprGuard implements GdprGuard, RxWrapper<GdprGuardRaw> {
 		this.required = this.underlyingGuard.required;
 
 
-		this._enabled$.next(this.enabled);
-		this._required$.next(this.required);
-		this._raw$.next(this.raw());
+		this.#enabled$.next(this.enabled);
+		this.#required$.next(this.required);
+		this.#raw$.next(this.raw());
 	}
 
 	public lens<DerivedState>(derive: (guard: GdprGuardRaw) => DerivedState): Observable<DerivedState> {
 		return this.raw$.pipe(
-			map(derive)
+			map(derive),
 		);
 	}
 
@@ -99,7 +108,7 @@ export class RxGdprGuard implements GdprGuard, RxWrapper<GdprGuardRaw> {
 
 	public lensThrough<DerivedState>(derive: (guard: GdprGuardRaw) => ObservableInput<DerivedState>): Observable<DerivedState> {
 		return this.raw$.pipe(
-			mergeMap(derive)
+			mergeMap(derive),
 		);
 	}
 
@@ -109,13 +118,13 @@ export class RxGdprGuard implements GdprGuard, RxWrapper<GdprGuardRaw> {
 
 	//// Overrides
 
-	enable(): GdprGuard {
+	enable(): RxGdprGuard {
 		this.underlyingGuard.enable();
 		this.syncWithUnderlying();
 		return this;
 	}
 
-	disable(): GdprGuard {
+	disable(): RxGdprGuard {
 		this.underlyingGuard.disable();
 		this.syncWithUnderlying();
 		return this;
@@ -125,31 +134,31 @@ export class RxGdprGuard implements GdprGuard, RxWrapper<GdprGuardRaw> {
 		return this.underlyingGuard.isEnabled(name);
 	}
 
-	toggle(): GdprGuard {
+	toggle(): RxGdprGuard {
 		this.underlyingGuard.toggle();
 		this.syncWithUnderlying();
 		return this;
 	}
 
-	makeRequired(): GdprGuard {
+	makeRequired(): RxGdprGuard {
 		this.underlyingGuard.makeRequired();
 		this.syncWithUnderlying();
 		return this;
 	}
 
-	enableForStorage(type: GdprStorage): GdprGuard {
+	enableForStorage(type: GdprStorage): RxGdprGuard {
 		this.underlyingGuard.enableForStorage(type);
 		this.syncWithUnderlying();
 		return this;
 	}
 
-	disableForStorage(type: GdprStorage): GdprGuard {
+	disableForStorage(type: GdprStorage): RxGdprGuard {
 		this.underlyingGuard.disableForStorage(type);
 		this.syncWithUnderlying();
 		return this;
 	}
 
-	toggleForStorage(type: GdprStorage): GdprGuard {
+	toggleForStorage(type: GdprStorage): RxGdprGuard {
 		this.underlyingGuard.toggleForStorage(type);
 		this.syncWithUnderlying();
 		return this;
