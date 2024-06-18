@@ -1,0 +1,12 @@
+{
+	"extends": "./tsconfig.base.json",
+	"compilerOptions": {
+		"outDir": "./dist/cjs",
+		"declaration": false,
+		"composite": false,
+		"target": "ES6",
+		"module": "commonjs",
+		"moduleResolution": "node",
+		"tsBuildInfoFile": ".cjs.tsbuildinfo"
+	}
+}
