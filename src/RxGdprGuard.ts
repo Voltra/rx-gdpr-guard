@@ -1,5 +1,13 @@
 import type { GdprGuard, GdprGuardRaw, GdprStorage } from "gdpr-guard";
-import { BehaviorSubject, distinctUntilChanged, map, mergeMap, Observable, ObservableInput, Subject } from "rxjs";
+import {
+	BehaviorSubject,
+	distinctUntilChanged,
+	map,
+	mergeMap,
+	Observable,
+	ObservableInput,
+	ReplaySubject,
+} from "rxjs";
 import deepEquals from "fast-deep-equal";
 import { RxWrapper } from "./interfaces";
 
@@ -38,7 +46,7 @@ export class RxGdprGuard implements GdprGuard, RxWrapper<GdprGuardRaw> {
 	public readonly raw$: Observable<GdprGuardRaw>;
 	#enabled$ = new BehaviorSubject(false);
 	#required$ = new BehaviorSubject(false);
-	#raw$ = new Subject<GdprGuardRaw>();
+	#raw$ = new ReplaySubject<GdprGuardRaw>(1);
 
 	protected constructor(
 		private underlyingGuard: GdprGuard,

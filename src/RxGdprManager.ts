@@ -1,5 +1,13 @@
 import { GdprGuardGroup, GdprManager, GdprManagerRaw, GdprStorage } from "gdpr-guard";
-import { BehaviorSubject, distinctUntilChanged, map, mergeMap, type Observable, ObservableInput, Subject } from "rxjs";
+import {
+	BehaviorSubject,
+	distinctUntilChanged,
+	map,
+	mergeMap,
+	type Observable,
+	ObservableInput,
+	ReplaySubject,
+} from "rxjs";
 import { RxGdprGuardGroup } from "./RxGdprGuardGroup";
 import { RxGdprGuard } from "./RxGdprGuard";
 import deepEquals from "fast-deep-equal";
@@ -33,7 +41,7 @@ export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerR
 	readonly #bannerWasShown$ = new BehaviorSubject(false);
 	readonly #enabled$ = new BehaviorSubject(true);
 	readonly #required$ = new BehaviorSubject(false);
-	readonly #raw$ = new Subject<GdprManagerRaw>();
+	readonly #raw$ = new ReplaySubject<GdprManagerRaw>(1);
 
 	/**
 	 * @inheritDoc
@@ -57,6 +65,8 @@ export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerR
 			.forEach(group => {
 				const decorated = RxGdprGuardGroup.decorate(group);
 				this.underlyingManager.addGroup(decorated);
+
+				this.subscribeToChanges(decorated);
 			});
 
 		this.bannerWasShown$ = this.#bannerWasShown$.pipe(
@@ -91,7 +101,16 @@ export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerR
 		return new this(manager);
 	}
 
-	//// Overrides
+	/**
+	 * Subscribe to the changes tied to the given {@link RxGdprGuardGroup} to properly keep in sync
+	 * @param group
+	 * @private
+	 */
+	private subscribeToChanges(group: RxGdprGuardGroup) {
+		group.raw$.subscribe({
+			next: () => this.syncWithUnderlying(),
+		});
+	}
 
 	/**
 	 * Wrap the {@link GdprManager} into an {@link RxGdprManager} instance
@@ -127,6 +146,17 @@ export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerR
 		return this.lensThrough(mapper);
 	}
 
+	private syncWithUnderlying() {
+		this.bannerWasShown = this.underlyingManager.bannerWasShown;
+		this.enabled = this.underlyingManager.enabled;
+
+		// @ts-expect-error TS2446
+		this.groups = this.underlyingManager.groups;
+
+		this.#bannerWasShown$.next(this.bannerWasShown);
+		this.#enabled$.next(this.enabled);
+	}
+
 	//// Overrides
 
 	public override closeBanner() {
@@ -148,6 +178,7 @@ export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerR
 		const wrapped = RxGdprGuardGroup.wrap(group);
 		this.underlyingManager.addGroup(wrapped);
 		this.syncWithUnderlying();
+		this.subscribeToChanges(wrapped);
 		return this;
 	}
 
@@ -251,17 +282,6 @@ export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerR
 	protected override forEachGroup(cb: (group: GdprGuardGroup) => any): RxGdprManager {
 		this.getGroups().forEach(cb);
 		return this;
-	}
-
-	private syncWithUnderlying() {
-		this.bannerWasShown = this.underlyingManager.bannerWasShown;
-		this.enabled = this.underlyingManager.enabled;
-
-		// @ts-expect-error TS2446
-		this.groups = this.underlyingManager.groups;
-
-		this.#bannerWasShown$.next(this.bannerWasShown);
-		this.#enabled$.next(this.enabled);
 	}
 }
 

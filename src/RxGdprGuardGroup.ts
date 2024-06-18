@@ -1,13 +1,21 @@
 import { GdprGuard, GdprGuardGroup, GdprGuardGroupRaw, GdprGuardRaw, GdprStorage } from "gdpr-guard";
 import { RxWrapper } from "./interfaces";
-import { BehaviorSubject, distinctUntilChanged, map, mergeMap, Observable, ObservableInput, Subject } from "rxjs";
+import {
+	BehaviorSubject,
+	distinctUntilChanged,
+	map,
+	mergeMap,
+	Observable,
+	ObservableInput,
+	ReplaySubject,
+} from "rxjs";
 import deepEquals from "fast-deep-equal";
 import { RxGdprGuard } from "./RxGdprGuard";
 import { GdprGuardCollection } from "gdpr-guard/dist/GdprGuardCollection";
 
 /**
  * A wrapper/decorator class for rxjs around a {@link GdprGuardGroup} instance (not one of its derived class)
- * @invariant After construction of an instance: this.underlyingGroup.getGuards().every(x => x instanceof RxGdprGuard)
+ * @invariant After construction of an instance: this.underlyingGroup.getGuards().every(x => x instanceof RxGdprGuard || x instanceof RxGdprGuardGroup)
  */
 export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGuardGroupRaw> {
 	/**
@@ -25,7 +33,7 @@ export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGu
 	 * @warning It only emits distinct values
 	 */
 	public readonly required$: Observable<boolean>;
-	#raw$ = new Subject<GdprGuardGroupRaw>();
+	#raw$ = new ReplaySubject<GdprGuardGroupRaw>(1);
 	#enabled$ = new BehaviorSubject(false);
 	#required$ = new BehaviorSubject(false);
 
@@ -35,7 +43,7 @@ export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGu
 		// Here we iterate over all the guards already present in
 		// the underlying group and wrap each of them. Then we
 		// insert the wrapped guards back into the underlying group.
-		// This ensures that the guards array is a RxGdprGuard[]
+		// This ensures that the guards array is a (RxGdprGuard|RxGdprGuardGroup)[]
 		// instead of a simple GdprGuard[].
 		//
 		// It's extremely crucial that this invariant is kept throughout the class
@@ -45,6 +53,7 @@ export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGu
 					? RxGdprGuardGroup.wrap(guard)
 					: RxGdprGuard.wrap(guard);
 				this.underlyingGroup.addGuard(wrapped);
+				this.subscribeToChanges(wrapped);
 			});
 
 		this.raw$ = this.#raw$.pipe(
@@ -108,10 +117,19 @@ export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGu
 	}
 
 	public override addGuard(guard: GdprGuard): RxGdprGuardGroup {
-		const wrappedGuard = RxGdprGuard.wrap(guard);
+		const wrappedGuard = guard instanceof GdprGuardGroup
+			? RxGdprGuard.wrap(guard)
+			: RxGdprGuard.wrap(guard);
 		this.underlyingGroup.addGuard(wrappedGuard);
 		this.syncWithUnderlying();
+		this.subscribeToChanges(wrappedGuard);
 		return this;
+	}
+
+	private subscribeToChanges(guard: RxGdprGuard | RxGdprGuardGroup) {
+		guard.raw$.subscribe({
+			next: () => this.syncWithUnderlying(),
+		});
 	}
 
 	//// Overrides
@@ -178,8 +196,14 @@ export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGu
 		return this.underlyingGroup.raw();
 	}
 
-	public override getGuards(): GdprGuard[] {
-		return this.underlyingGroup.getGuards();
+	public override getGuards(): (RxGdprGuardGroup|RxGdprGuard)[] {
+		// From the invariant we know that any GdprGuardGroup in the
+		// underlying group is actually an RxGdprGuardGroup.
+		// From the invariant we know that any GdprGuard in the
+		// underlying group is actually an RxGdprGuard.
+		// Therefore, this cast is absolutely safe as long as
+		// the invariant is maintained.
+		return this.underlyingGroup.getGuards() as (RxGdprGuardGroup|RxGdprGuard)[];
 	}
 
 	protected override doForEachGuard(cb: (guard: GdprGuard) => any): RxGdprGuardGroup {
@@ -223,6 +247,8 @@ export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGu
 		// @ts-expect-error TS2446
 		this.bindings = this.underlyingGroup.bindings;
 
+		this.#enabled$.next(this.enabled);
+		this.#required$.next(this.required);
 		this.#raw$.next(this.raw());
 	}
 }
