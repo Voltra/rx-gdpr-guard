@@ -3,54 +3,31 @@ import { RxWrapper } from "./interfaces";
 import { BehaviorSubject, distinctUntilChanged, map, mergeMap, Observable, ObservableInput, Subject } from "rxjs";
 import deepEquals from "fast-deep-equal";
 import { RxGdprGuard } from "./RxGdprGuard";
+import { GdprGuardCollection } from "gdpr-guard/dist/GdprGuardCollection";
 
 /**
  * A wrapper/decorator class for rxjs around a {@link GdprGuardGroup} instance (not one of its derived class)
  * @invariant After construction of an instance: this.underlyingGroup.getGuards().every(x => x instanceof RxGdprGuard)
  */
 export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGuardGroupRaw> {
-	#raw$ = new Subject<GdprGuardGroupRaw>();
-	#enabled$ = new BehaviorSubject(false);
-	#required$ = new BehaviorSubject(false);
-
 	/**
 	 * An observable that emits the new result of {@link GdprGuardGroup#raw} as it changes
 	 * @warning It only emits (deeply) distinct values
 	 */
 	public readonly raw$: Observable<GdprGuardGroupRaw>;
-
 	/**
 	 * An observable that emits the new value of {@link GdprGuardGroup#enabled} as it changes
 	 * @warning It only emits distinct values
 	 */
 	public readonly enabled$: Observable<boolean>;
-
 	/**
 	 * An observable that emits the new value of {@link GdprGuardGroup#required} as it changes
 	 * @warning It only emits distinct values
 	 */
 	public readonly required$: Observable<boolean>;
-
-	/**
-	 * Wrap the {@link GdprGuardGroup} into an {@link RxGdprGuardGroup} instance
-	 * @param group - The group to wrap
-	 */
-	public static wrap(group: GdprGuardGroup): RxGdprGuardGroup {
-		if (group instanceof RxGdprGuardGroup) {
-			return group;
-		}
-
-		return new RxGdprGuardGroup(group);
-	}
-
-	/**
-	 * Wrap the {@link GdprGuardGroup} into an {@link RxGdprGuardGroup} instance
-	 * @alias wrap
-	 * @param group - The group to decorate
-	 */
-	public static decorate(group: GdprGuardGroup): RxGdprGuardGroup {
-		return this.wrap(group);
-	}
+	#raw$ = new Subject<GdprGuardGroupRaw>();
+	#enabled$ = new BehaviorSubject(false);
+	#required$ = new BehaviorSubject(false);
 
 	protected constructor(private underlyingGroup: GdprGuardGroup) {
 		super(underlyingGroup.name, underlyingGroup.description, underlyingGroup.enabled, underlyingGroup.required);
@@ -83,19 +60,31 @@ export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGu
 		);
 	}
 
+	/**
+	 * Wrap the {@link GdprGuardGroup} into an {@link RxGdprGuardGroup} instance
+	 * @param group - The group to wrap
+	 */
+	public static wrap(group: GdprGuardGroup): RxGdprGuardGroup {
+		if (group instanceof RxGdprGuardGroup) {
+			return group;
+		}
+
+		return new RxGdprGuardGroup(group);
+	}
+
+	/**
+	 * Wrap the {@link GdprGuardGroup} into an {@link RxGdprGuardGroup} instance
+	 * @alias wrap
+	 * @param group - The group to decorate
+	 */
+	public static decorate(group: GdprGuardGroup): RxGdprGuardGroup {
+		return this.wrap(group);
+	}
+
 	static override for(name: string, description?: string, enabled?: boolean, required?: boolean): RxGdprGuardGroup {
 		return RxGdprGuardGroup.decorate(
 			new GdprGuardGroup(name, description, enabled, required),
 		);
-	}
-
-	private syncWithUnderlying() {
-		this.name = this.underlyingGroup.name;
-		this.enabled = this.underlyingGroup.enabled;
-		this.description = this.underlyingGroup.description;
-		this.required = this.underlyingGroup.required;
-
-		this.#raw$.next(this.raw());
 	}
 
 	public lens<DerivedState>(derive: (guard: GdprGuardRaw) => DerivedState): Observable<DerivedState> {
@@ -118,14 +107,14 @@ export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGu
 		return this.lensThrough(mapper);
 	}
 
-	//// Overrides
-
 	public override addGuard(guard: GdprGuard): RxGdprGuardGroup {
 		const wrappedGuard = RxGdprGuard.wrap(guard);
 		this.underlyingGroup.addGuard(wrappedGuard);
 		this.syncWithUnderlying();
 		return this;
 	}
+
+	//// Overrides
 
 	public override hasGuard(name: string): boolean {
 		return this.underlyingGroup.hasGuard(name);
@@ -191,5 +180,49 @@ export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGu
 
 	public override getGuards(): GdprGuard[] {
 		return this.underlyingGroup.getGuards();
+	}
+
+	protected override doForEachGuard(cb: (guard: GdprGuard) => any): RxGdprGuardGroup {
+		this.getGuards().forEach(cb);
+		return this;
+	}
+
+	//// Private overrides
+
+	protected override reduceSubGroupsPred(pred: (guard: GdprGuardGroup) => boolean): boolean {
+		for (const guard of this.getGuards()) {
+			if (guard instanceof GdprGuardGroup && pred(guard)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	protected override reduceSubGroups(extractor: (guard: (GdprGuardCollection & GdprGuard)) => (GdprGuard | null)): GdprGuard | null {
+		for (const guard of this.getGuards()) {
+			if (!(guard instanceof GdprGuardGroup)) {
+				continue;
+			}
+
+			const extracted = extractor(guard);
+
+			if (extracted) {
+				return extracted;
+			}
+		}
+
+		return null;
+	}
+
+	private syncWithUnderlying() {
+		this.name = this.underlyingGroup.name;
+		this.enabled = this.underlyingGroup.enabled;
+		this.description = this.underlyingGroup.description;
+		this.required = this.underlyingGroup.required;
+
+		// @ts-expect-error TS2446
+		this.bindings = this.underlyingGroup.bindings;
+
+		this.#raw$.next(this.raw());
 	}
 }

@@ -7,42 +7,56 @@ import { RxWrapper } from "./interfaces";
  * A wrapper/decorator class for rxjs around a {@link GdprGuard} instance (not one of its derived class)
  */
 export class RxGdprGuard implements GdprGuard, RxWrapper<GdprGuardRaw> {
-	// @ts-ignore TS2564
+	// @ts-expect-error TS2564
 	public name: string;
 
-	// @ts-ignore TS2564
+	// @ts-expect-error TS2564
 	public enabled: boolean;
 
-	// @ts-ignore TS2564
+	// @ts-expect-error TS2564
 	public description: string;
 
-	// @ts-ignore TS2564
+	// @ts-expect-error TS2564
 	public storage: GdprStorage;
 
-	// @ts-ignore TS2564
+	// @ts-expect-error TS2564
 	public required: boolean;
-
-	#enabled$ = new BehaviorSubject(false);
-	#required$ = new BehaviorSubject(false);
-	#raw$ = new Subject<GdprGuardRaw>();
-
 	/**
 	 * An observable that emits the new value of {@link GdprGuard#enabled} as it changes
 	 * @warning It only emits distinct values
 	 */
 	public readonly enabled$: Observable<boolean>;
-
 	/**
 	 * An observable that emits the new value of {@link GdprGuard#required} as it changes
 	 * @warning It only emits distinct values
 	 */
 	public readonly required$: Observable<boolean>;
-
 	/**
 	 * An observable that emits the new result of {@link GdprGuard#raw} as it changes
 	 * @warning It only emits (deeply) distinct values
 	 */
 	public readonly raw$: Observable<GdprGuardRaw>;
+	#enabled$ = new BehaviorSubject(false);
+	#required$ = new BehaviorSubject(false);
+	#raw$ = new Subject<GdprGuardRaw>();
+
+	protected constructor(
+		private underlyingGuard: GdprGuard,
+	) {
+		this.enabled$ = this.#enabled$.pipe(
+			distinctUntilChanged(),
+		);
+
+		this.required$ = this.#required$.pipe(
+			distinctUntilChanged(),
+		);
+
+		this.raw$ = this.#raw$.pipe(
+			distinctUntilChanged(deepEquals),
+		);
+
+		this.syncWithUnderlying();
+	}
 
 	/**
 	 * Wrap the {@link GdprGuard} into a {@link RxGdprGuard} instance
@@ -65,37 +79,6 @@ export class RxGdprGuard implements GdprGuard, RxWrapper<GdprGuardRaw> {
 		return this.wrap(guard);
 	}
 
-	protected constructor(
-		private underlyingGuard: GdprGuard,
-	) {
-		this.enabled$ = this.#enabled$.pipe(
-			distinctUntilChanged(),
-		);
-
-		this.required$ = this.#required$.pipe(
-			distinctUntilChanged(),
-		);
-
-		this.raw$ = this.#raw$.pipe(
-			distinctUntilChanged(deepEquals),
-		);
-
-		this.syncWithUnderlying();
-	}
-
-	protected syncWithUnderlying() {
-		this.name = this.underlyingGuard.name;
-		this.enabled = this.underlyingGuard.enabled;
-		this.description = this.underlyingGuard.description;
-		this.storage = this.underlyingGuard.storage;
-		this.required = this.underlyingGuard.required;
-
-
-		this.#enabled$.next(this.enabled);
-		this.#required$.next(this.required);
-		this.#raw$.next(this.raw());
-	}
-
 	public lens<DerivedState>(derive: (guard: GdprGuardRaw) => DerivedState): Observable<DerivedState> {
 		return this.raw$.pipe(
 			map(derive),
@@ -114,6 +97,19 @@ export class RxGdprGuard implements GdprGuard, RxWrapper<GdprGuardRaw> {
 
 	public flatMap<T>(mapper: (guard: GdprGuardRaw) => ObservableInput<T>): Observable<T> {
 		return this.lensThrough(mapper);
+	}
+
+	protected syncWithUnderlying() {
+		this.name = this.underlyingGuard.name;
+		this.enabled = this.underlyingGuard.enabled;
+		this.description = this.underlyingGuard.description;
+		this.storage = this.underlyingGuard.storage;
+		this.required = this.underlyingGuard.required;
+
+
+		this.#enabled$.next(this.enabled);
+		this.#required$.next(this.required);
+		this.#raw$.next(this.raw());
 	}
 
 	//// Overrides
