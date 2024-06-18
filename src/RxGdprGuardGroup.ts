@@ -1,4 +1,4 @@
-import { GdprGuard, GdprGuardGroup, GdprGuardGroupRaw, GdprGuardRaw, GdprStorage } from "gdpr-guard";
+import { GdprGuard, GdprGuardGroup, GdprGuardGroupRaw, GdprStorage } from "gdpr-guard";
 import { RxWrapper } from "./interfaces";
 import {
 	BehaviorSubject,
@@ -11,7 +11,7 @@ import {
 } from "rxjs";
 import deepEquals from "fast-deep-equal";
 import { RxGdprGuard } from "./RxGdprGuard";
-import { GdprGuardCollection } from "gdpr-guard/dist/GdprGuardCollection";
+import type { GdprGuardCollection } from "gdpr-guard/dist/GdprGuardCollection";
 
 /**
  * A wrapper/decorator class for rxjs around a {@link GdprGuardGroup} instance (not one of its derived class)
@@ -96,23 +96,23 @@ export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGu
 		);
 	}
 
-	public lens<DerivedState>(derive: (guard: GdprGuardRaw) => DerivedState): Observable<DerivedState> {
+	public lens<DerivedState>(derive: (group: GdprGuardGroupRaw) => DerivedState): Observable<DerivedState> {
 		return this.raw$.pipe(
 			map(derive),
 		);
 	}
 
-	public map<T>(mapper: (guard: GdprGuardRaw) => T): Observable<T> {
+	public map<T>(mapper: (group: GdprGuardGroupRaw) => T): Observable<T> {
 		return this.lens<T>(mapper);
 	}
 
-	public lensThrough<DerivedState>(derive: (guard: GdprGuardRaw) => ObservableInput<DerivedState>): Observable<DerivedState> {
+	public lensThrough<DerivedState>(derive: (group: GdprGuardGroupRaw) => ObservableInput<DerivedState>): Observable<DerivedState> {
 		return this.raw$.pipe(
 			mergeMap(derive),
 		);
 	}
 
-	public flatMap<T>(mapper: (guard: GdprGuardRaw) => ObservableInput<T>): Observable<T> {
+	public flatMap<T>(mapper: (group: GdprGuardGroupRaw) => ObservableInput<T>): Observable<T> {
 		return this.lensThrough(mapper);
 	}
 

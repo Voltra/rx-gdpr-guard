@@ -1,21 +1,23 @@
 import { describe, expect, it } from "vitest";
 import { GdprManagerBuilder, GdprStorage } from "gdpr-guard";
-import { RxGdprManager } from "../src/RxGdprManager";
-import { RxGdprGuardGroup } from "../src/RxGdprGuardGroup";
+import { RxGdprManager } from "@/RxGdprManager";
+import { RxGdprGuardGroup } from "@/RxGdprGuardGroup";
+
+const managerFactory = () => GdprManagerBuilder.make()
+	.startRequiredGroup(GdprStorage.None, "a", "description A")
+	.withEnabledGuard("aa", "description AA", GdprStorage.Cookie)
+	.withEnabledGuard("ab", "description AB", GdprStorage.LocalStorage)
+	.endGroup()
+	.startDisabledGroup(GdprStorage.None, "b", "description B")
+	.withDisabledGuard("ba", "description BA", GdprStorage.ServerStorage)
+	.endGroup()
+	.build();
 
 describe("RxGdprManager", () => {
 	it("decorates the underlying manager's group with RxGdprGuardGroup", () => {
 		expect.hasAssertions();
 
-		const manager = GdprManagerBuilder.make()
-			.startRequiredGroup(GdprStorage.None, "a", "description A")
-				.withEnabledGuard("aa", "description AA", GdprStorage.Cookie)
-				.withEnabledGuard("ab", "description AB", GdprStorage.LocalStorage)
-			.endGroup()
-			.startDisabledGroup(GdprStorage.None, "b", "description B")
-				.withDisabledGuard("ba", "description BA", GdprStorage.ServerStorage)
-			.endGroup()
-		.build();
+		const manager = managerFactory();
 
 		expect.assertions(2 * manager.getGroups().length);
 
