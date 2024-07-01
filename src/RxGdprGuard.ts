@@ -14,7 +14,7 @@ import { RxWrapper } from "./interfaces";
 /**
  * A wrapper/decorator class for rxjs around a {@link GdprGuard} instance (not one of its derived class)
  */
-export class RxGdprGuard implements GdprGuard, RxWrapper<GdprGuardRaw> {
+export class RxGdprGuard implements GdprGuard, RxWrapper<GdprGuardRaw, GdprGuard> {
 	// @ts-expect-error TS2564
 	public name: string;
 
@@ -87,37 +87,34 @@ export class RxGdprGuard implements GdprGuard, RxWrapper<GdprGuardRaw> {
 		return this.wrap(guard);
 	}
 
-	public lens<DerivedState>(derive: (guard: GdprGuardRaw) => DerivedState): Observable<DerivedState> {
+	public unwrap(): GdprGuard {
+		const guard = this.underlyingGuard;
+
+		this.#enabled$.complete();
+		this.#raw$.complete();
+		this.#required$.complete();
+
+		return guard;
+	}
+
+	public lens<DerivedState>(derive: (guardRaw: GdprGuardRaw) => DerivedState): Observable<DerivedState> {
 		return this.raw$.pipe(
 			map(derive),
 		);
 	}
 
-	public map<T>(mapper: (guard: GdprGuardRaw) => T): Observable<T> {
+	public map<T>(mapper: (guardRaw: GdprGuardRaw) => T): Observable<T> {
 		return this.lens<T>(mapper);
 	}
 
-	public lensThrough<DerivedState>(derive: (guard: GdprGuardRaw) => ObservableInput<DerivedState>): Observable<DerivedState> {
+	public lensThrough<DerivedState>(derive: (guardRaw: GdprGuardRaw) => ObservableInput<DerivedState>): Observable<DerivedState> {
 		return this.raw$.pipe(
 			mergeMap(derive),
 		);
 	}
 
-	public flatMap<T>(mapper: (guard: GdprGuardRaw) => ObservableInput<T>): Observable<T> {
+	public flatMap<T>(mapper: (guardRaw: GdprGuardRaw) => ObservableInput<T>): Observable<T> {
 		return this.lensThrough(mapper);
-	}
-
-	protected syncWithUnderlying() {
-		this.name = this.underlyingGuard.name;
-		this.enabled = this.underlyingGuard.enabled;
-		this.description = this.underlyingGuard.description;
-		this.storage = this.underlyingGuard.storage;
-		this.required = this.underlyingGuard.required;
-
-
-		this.#enabled$.next(this.enabled);
-		this.#required$.next(this.required);
-		this.#raw$.next(this.raw());
 	}
 
 	//// Overrides
@@ -170,5 +167,18 @@ export class RxGdprGuard implements GdprGuard, RxWrapper<GdprGuardRaw> {
 
 	raw(): GdprGuardRaw {
 		return this.underlyingGuard.raw();
+	}
+
+	protected syncWithUnderlying() {
+		this.name = this.underlyingGuard.name;
+		this.enabled = this.underlyingGuard.enabled;
+		this.description = this.underlyingGuard.description;
+		this.storage = this.underlyingGuard.storage;
+		this.required = this.underlyingGuard.required;
+
+
+		this.#enabled$.next(this.enabled);
+		this.#required$.next(this.required);
+		this.#raw$.next(this.raw());
 	}
 }

@@ -23,6 +23,7 @@ export default defineConfig({
 	resolve: {
 		alias: {
 			"@": here("./src"),
+			"@tests": here("./tests"),
 		},
 	},
 });

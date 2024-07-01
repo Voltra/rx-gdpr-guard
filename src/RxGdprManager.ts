@@ -6,7 +6,7 @@ import {
 	mergeMap,
 	type Observable,
 	ObservableInput,
-	ReplaySubject,
+	ReplaySubject, SubscriptionLike,
 } from "rxjs";
 import { RxGdprGuardGroup } from "./RxGdprGuardGroup";
 import { RxGdprGuard } from "./RxGdprGuard";
@@ -15,9 +15,9 @@ import { RxWrapper } from "./interfaces";
 
 /**
  * A wrapper/decorator class for rxjs around a {@link GdprManager} instance
- * @invariant After construction of an instance: this.underlyingManager.getGroups().every(x => x instanceof RxGdprGuardGroup)
+ * @invariant After construction of an instance: <code>this.underlyingManager.getGroups().every(x => x instanceof RxGdprGuardGroup)</code>
  */
-export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerRaw> {
+export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerRaw, GdprManager> {
 	/**
 	 * An observable that emits the new value of {@link GdprManager#bannerWasShown} as it changes
 	 * @warning It only emits distinct values
@@ -42,6 +42,8 @@ export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerR
 	readonly #enabled$ = new BehaviorSubject(true);
 	readonly #required$ = new BehaviorSubject(false);
 	readonly #raw$ = new ReplaySubject<GdprManagerRaw>(1);
+
+	#subscriptions = [] as SubscriptionLike[];
 
 	/**
 	 * @inheritDoc
@@ -102,17 +104,6 @@ export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerR
 	}
 
 	/**
-	 * Subscribe to the changes tied to the given {@link RxGdprGuardGroup} to properly keep in sync
-	 * @param group
-	 * @private
-	 */
-	private subscribeToChanges(group: RxGdprGuardGroup) {
-		group.raw$.subscribe({
-			next: () => this.syncWithUnderlying(),
-		});
-	}
-
-	/**
 	 * Wrap the {@link GdprManager} into an {@link RxGdprManager} instance
 	 * @alias wrap
 	 * @param manager - The manager to decorate
@@ -126,6 +117,28 @@ export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerR
 		return this.wrap(manager);
 	}
 
+	public unwrap(): GdprManager {
+		const manager = this.underlyingManager;
+
+		this.getGroups().forEach(group => {
+			const unwrapped = group.unwrap();
+			manager.addGroup(unwrapped);
+		});
+
+		this.#bannerWasShown$.complete();
+		this.#enabled$.complete();
+		this.#raw$.complete();
+		this.#required$.complete();
+
+		this.#subscriptions.forEach(subscription => {
+			subscription.unsubscribe();
+		});
+
+		this.#subscriptions = [];
+
+		return manager;
+	}
+
 	lens<DerivedState>(derive: (guard: GdprManagerRaw) => DerivedState): Observable<DerivedState> {
 		return this.raw$.pipe(
 			map(derive),
@@ -136,7 +149,7 @@ export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerR
 		return this.lens(mapper);
 	}
 
-	lensThrough<DerivedState>(derive: (guard: GdprManagerRaw) => ObservableInput<DerivedState>): Observable<DerivedState> {
+	lensThrough<DerivedState>(derive: (managerRaw: GdprManagerRaw) => ObservableInput<DerivedState>): Observable<DerivedState> {
 		return this.raw$.pipe(
 			mergeMap(derive),
 		);
@@ -145,19 +158,6 @@ export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerR
 	flatMap<T>(mapper: (guard: GdprManagerRaw) => ObservableInput<T>): Observable<T> {
 		return this.lensThrough(mapper);
 	}
-
-	private syncWithUnderlying() {
-		this.bannerWasShown = this.underlyingManager.bannerWasShown;
-		this.enabled = this.underlyingManager.enabled;
-
-		// @ts-expect-error TS2446
-		this.groups = this.underlyingManager.groups;
-
-		this.#bannerWasShown$.next(this.bannerWasShown);
-		this.#enabled$.next(this.enabled);
-	}
-
-	//// Overrides
 
 	public override closeBanner() {
 		this.underlyingManager.closeBanner();
@@ -168,6 +168,8 @@ export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerR
 		this.underlyingManager.resetAndShowBanner();
 		this.syncWithUnderlying();
 	}
+
+	//// Overrides
 
 	public override createGroup(name: string, description?: string): RxGdprManager {
 		const group = RxGdprGuardGroup.for(name, description);
@@ -186,7 +188,7 @@ export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerR
 		return this.underlyingManager.hasGuard(name);
 	}
 
-	public override getGuard(name: string): RxGdprGuard | null {
+	public override getGuard(name: string): RxGdprGuardGroup | RxGdprGuard | null {
 		// From the invariant we know that any GdprGuardGroup in the
 		// underlying manager is actually an RxGdprGuardGroup.
 		// Therefore, this cast is absolutely safe as long as
@@ -196,7 +198,7 @@ export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerR
 		// in the underlying group is actually an RxGdprGuard.
 		// Therefore, this cast is absolutely safe as long as
 		// the invariant is maintained.
-		return this.underlyingManager.getGuard(name) as (RxGdprGuard | null);
+		return this.underlyingManager.getGuard(name) as (RxGdprGuardGroup | RxGdprGuard | null);
 	}
 
 	public override hasGroup(name: string): boolean {
@@ -282,6 +284,30 @@ export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerR
 	protected override forEachGroup(cb: (group: GdprGuardGroup) => any): RxGdprManager {
 		this.getGroups().forEach(cb);
 		return this;
+	}
+
+	/**
+	 * Subscribe to the changes tied to the given {@link RxGdprGuardGroup} to properly keep in sync
+	 * @param group
+	 * @private
+	 */
+	private subscribeToChanges(group: RxGdprGuardGroup) {
+		const subscription = group.raw$.subscribe({
+			next: () => this.syncWithUnderlying(),
+		});
+
+		this.#subscriptions.push(subscription);
+	}
+
+	private syncWithUnderlying() {
+		this.bannerWasShown = this.underlyingManager.bannerWasShown;
+		this.enabled = this.underlyingManager.enabled;
+
+		// @ts-expect-error TS2446
+		this.groups = this.underlyingManager.groups;
+
+		this.#bannerWasShown$.next(this.bannerWasShown);
+		this.#enabled$.next(this.enabled);
 	}
 }
 
