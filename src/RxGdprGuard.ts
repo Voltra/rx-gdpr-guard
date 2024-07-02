@@ -15,19 +15,19 @@ import { RxWrapper } from "./interfaces";
  * A wrapper/decorator class for rxjs around a {@link GdprGuard} instance (not one of its derived class)
  */
 export class RxGdprGuard implements GdprGuard, RxWrapper<GdprGuardRaw, GdprGuard> {
-	// @ts-expect-error TS2564
+	// @ts-expect-error TS2564 We know it's properly initialized
 	public name: string;
 
-	// @ts-expect-error TS2564
+	// @ts-expect-error TS2564 We know it's properly initialized
 	public enabled: boolean;
 
-	// @ts-expect-error TS2564
+	// @ts-expect-error TS2564 We know it's properly initialized
 	public description: string;
 
-	// @ts-expect-error TS2564
+	// @ts-expect-error TS2564 We know it's properly initialized
 	public storage: GdprStorage;
 
-	// @ts-expect-error TS2564
+	// @ts-expect-error TS2564 We know it's properly initialized
 	public required: boolean;
 	/**
 	 * An observable that emits the new value of {@link GdprGuard#enabled} as it changes
@@ -60,7 +60,7 @@ export class RxGdprGuard implements GdprGuard, RxWrapper<GdprGuardRaw, GdprGuard
 		);
 
 		this.raw$ = this.#raw$.pipe(
-			distinctUntilChanged(deepEquals),
+			distinctUntilChanged((a, b) => deepEquals(a, b)),
 		);
 
 		this.syncWithUnderlying();
@@ -119,13 +119,13 @@ export class RxGdprGuard implements GdprGuard, RxWrapper<GdprGuardRaw, GdprGuard
 
 	//// Overrides
 
-	enable(): RxGdprGuard {
+	enable(): this {
 		this.underlyingGuard.enable();
 		this.syncWithUnderlying();
 		return this;
 	}
 
-	disable(): RxGdprGuard {
+	disable(): this {
 		this.underlyingGuard.disable();
 		this.syncWithUnderlying();
 		return this;
@@ -135,31 +135,31 @@ export class RxGdprGuard implements GdprGuard, RxWrapper<GdprGuardRaw, GdprGuard
 		return this.underlyingGuard.isEnabled(name);
 	}
 
-	toggle(): RxGdprGuard {
+	toggle(): this {
 		this.underlyingGuard.toggle();
 		this.syncWithUnderlying();
 		return this;
 	}
 
-	makeRequired(): RxGdprGuard {
+	makeRequired(): this {
 		this.underlyingGuard.makeRequired();
 		this.syncWithUnderlying();
 		return this;
 	}
 
-	enableForStorage(type: GdprStorage): RxGdprGuard {
+	enableForStorage(type: GdprStorage): this {
 		this.underlyingGuard.enableForStorage(type);
 		this.syncWithUnderlying();
 		return this;
 	}
 
-	disableForStorage(type: GdprStorage): RxGdprGuard {
+	disableForStorage(type: GdprStorage): this {
 		this.underlyingGuard.disableForStorage(type);
 		this.syncWithUnderlying();
 		return this;
 	}
 
-	toggleForStorage(type: GdprStorage): RxGdprGuard {
+	toggleForStorage(type: GdprStorage): this {
 		this.underlyingGuard.toggleForStorage(type);
 		this.syncWithUnderlying();
 		return this;

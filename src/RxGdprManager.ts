@@ -53,7 +53,7 @@ export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerR
 	protected constructor(protected underlyingManager: GdprManager) {
 		super();
 
-		// @ts-expect-error TS2540
+		// @ts-expect-error TS2540 We want to share the exact same instance
 		this.events = this.underlyingManager.events;
 
 		// Here we iterate over all the groups already present in
@@ -84,7 +84,7 @@ export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerR
 		);
 
 		this.raw$ = this.#raw$.pipe(
-			distinctUntilChanged(deepEquals),
+			distinctUntilChanged((a, b) => deepEquals(a, b)),
 		);
 
 		this.syncWithUnderlying();
@@ -171,12 +171,12 @@ export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerR
 
 	//// Overrides
 
-	public override createGroup(name: string, description?: string): RxGdprManager {
+	public override createGroup(name: string, description?: string): this {
 		const group = RxGdprGuardGroup.for(name, description);
 		return this.addGroup(group);
 	}
 
-	public override addGroup(group: GdprGuardGroup): RxGdprManager {
+	public override addGroup(group: GdprGuardGroup): this {
 		const wrapped = RxGdprGuardGroup.wrap(group);
 		this.underlyingManager.addGroup(wrapped);
 		this.syncWithUnderlying();
@@ -217,43 +217,43 @@ export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerR
 		return this.underlyingManager.isEnabled(name);
 	}
 
-	public override enable(): RxGdprManager {
+	public override enable(): this {
 		this.underlyingManager.enable();
 		this.syncWithUnderlying();
 		return this;
 	}
 
-	public override disable(): RxGdprManager {
+	public override disable(): this {
 		this.underlyingManager.disable();
 		this.syncWithUnderlying();
 		return this;
 	}
 
-	public override toggle(): RxGdprManager {
+	public override toggle(): this {
 		this.underlyingManager.toggle();
 		this.syncWithUnderlying();
 		return this;
 	}
 
-	public override makeRequired(): RxGdprManager {
+	public override makeRequired(): this {
 		this.underlyingManager.makeRequired();
 		this.syncWithUnderlying();
 		return this;
 	}
 
-	public override enableForStorage(type: GdprStorage): RxGdprManager {
+	public override enableForStorage(type: GdprStorage): this {
 		this.underlyingManager.enableForStorage(type);
 		this.syncWithUnderlying();
 		return this;
 	}
 
-	public override disableForStorage(type: GdprStorage): RxGdprManager {
+	public override disableForStorage(type: GdprStorage): this {
 		this.underlyingManager.disableForStorage(type);
 		this.syncWithUnderlying();
 		return this;
 	}
 
-	public override toggleForStorage(type: GdprStorage): RxGdprManager {
+	public override toggleForStorage(type: GdprStorage): this {
 		this.underlyingManager.toggleForStorage(type);
 		this.syncWithUnderlying();
 		return this;
@@ -281,7 +281,7 @@ export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerR
 		return false;
 	}
 
-	protected override forEachGroup(cb: (group: GdprGuardGroup) => any): RxGdprManager {
+	protected override forEachGroup(cb: (group: GdprGuardGroup) => void): this {
 		this.getGroups().forEach(cb);
 		return this;
 	}
@@ -293,7 +293,7 @@ export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerR
 	 */
 	private subscribeToChanges(group: RxGdprGuardGroup) {
 		const subscription = group.raw$.subscribe({
-			next: () => this.syncWithUnderlying(),
+			next: () => { this.syncWithUnderlying(); },
 		});
 
 		this.#subscriptions.push(subscription);
@@ -303,7 +303,7 @@ export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerR
 		this.bannerWasShown = this.underlyingManager.bannerWasShown;
 		this.enabled = this.underlyingManager.enabled;
 
-		// @ts-expect-error TS2446
+		// @ts-expect-error TS2446 We want to share the same instance
 		this.groups = this.underlyingManager.groups;
 
 		this.#bannerWasShown$.next(this.bannerWasShown);

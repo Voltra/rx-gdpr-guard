@@ -78,8 +78,8 @@ describe("RxGdprManager", () => {
 		expect(decoratedState).toStrictEqual(originalState);
 	});
 
-	describe(".decorate(manager)", () => decorateTests("decorate"));
-	describe(".wrap(manager)", () => decorateTests("wrap"));
+	describe(".decorate(manager)", () => { decorateTests("decorate"); });
+	describe(".wrap(manager)", () => { decorateTests("wrap"); });
 
 	describe("#events", () => {
 		it("is the same event hub instance as the wrapped manager's", () => {

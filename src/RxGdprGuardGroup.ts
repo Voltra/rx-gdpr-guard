@@ -59,7 +59,7 @@ export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGu
 			});
 
 		this.raw$ = this.#raw$.pipe(
-			distinctUntilChanged(deepEquals),
+			distinctUntilChanged((a, b) => deepEquals(a, b)),
 		);
 
 		this.enabled$ = this.#enabled$.pipe(
@@ -141,7 +141,7 @@ export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGu
 
 	//// Overrides
 
-	public override addGuard(guard: GdprGuard): RxGdprGuardGroup {
+	public override addGuard(guard: GdprGuard): this {
 		const wrappedGuard = guard instanceof GdprGuardGroup
 			? RxGdprGuard.wrap(guard)
 			: RxGdprGuard.wrap(guard);
@@ -169,43 +169,43 @@ export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGu
 		return this.underlyingGroup.isEnabled(name);
 	}
 
-	public override enable(): RxGdprGuardGroup {
+	public override enable(): this {
 		this.underlyingGroup.enable();
 		this.syncWithUnderlying();
 		return this;
 	}
 
-	public override disable(): RxGdprGuardGroup {
+	public override disable(): this {
 		this.underlyingGroup.disable();
 		this.syncWithUnderlying();
 		return this;
 	}
 
-	public override toggle(): RxGdprGuardGroup {
+	public override toggle(): this {
 		this.underlyingGroup.toggle();
 		this.syncWithUnderlying();
 		return this;
 	}
 
-	public override makeRequired(): RxGdprGuardGroup {
+	public override makeRequired(): this {
 		this.underlyingGroup.makeRequired();
 		this.syncWithUnderlying();
 		return this;
 	}
 
-	public override enableForStorage(type: GdprStorage): RxGdprGuardGroup {
+	public override enableForStorage(type: GdprStorage): this {
 		this.underlyingGroup.enableForStorage(type);
 		this.syncWithUnderlying();
 		return this;
 	}
 
-	public override disableForStorage(type: GdprStorage): RxGdprGuardGroup {
+	public override disableForStorage(type: GdprStorage): this {
 		this.underlyingGroup.disableForStorage(type);
 		this.syncWithUnderlying();
 		return this;
 	}
 
-	public override toggleForStorage(type: GdprStorage): RxGdprGuardGroup {
+	public override toggleForStorage(type: GdprStorage): this {
 		this.underlyingGroup.toggleForStorage(type);
 		this.syncWithUnderlying();
 		return this;
@@ -225,7 +225,7 @@ export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGu
 		return this.underlyingGroup.getGuards() as (RxGdprGuardGroup | RxGdprGuard)[];
 	}
 
-	protected override doForEachGuard(cb: (guard: GdprGuard) => any): RxGdprGuardGroup {
+	protected override doForEachGuard(cb: (guard: GdprGuard) => void): this {
 		this.getGuards().forEach(cb);
 		return this;
 	}
@@ -259,7 +259,7 @@ export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGu
 
 	private subscribeToChanges(guard: RxGdprGuard | RxGdprGuardGroup) {
 		const subscription = guard.raw$.subscribe({
-			next: () => this.syncWithUnderlying(),
+			next: () => { this.syncWithUnderlying(); },
 		});
 
 		this.#subscriptions.push(subscription);
@@ -271,7 +271,7 @@ export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGu
 		this.description = this.underlyingGroup.description;
 		this.required = this.underlyingGroup.required;
 
-		// @ts-expect-error TS2446
+		// @ts-expect-error TS2446 We want to share the exact same instance
 		this.bindings = this.underlyingGroup.bindings;
 
 		this.#enabled$.next(this.enabled);
