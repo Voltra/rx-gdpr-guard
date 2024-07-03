@@ -6,12 +6,14 @@ import {
 	mergeMap,
 	type Observable,
 	ObservableInput,
-	ReplaySubject, SubscriptionLike,
+	ReplaySubject,
+	SubscriptionLike,
+	takeUntil,
 } from "rxjs";
 import { RxGdprGuardGroup } from "./RxGdprGuardGroup";
 import { RxGdprGuard } from "./RxGdprGuard";
-import deepEquals from "fast-deep-equal";
 import { RxWrapper } from "./interfaces";
+import { deepEquals } from "./utils";
 
 /**
  * A wrapper/decorator class for rxjs around a {@link GdprManager} instance
@@ -43,6 +45,12 @@ export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerR
 	readonly #required$ = new BehaviorSubject(false);
 	readonly #raw$ = new ReplaySubject<GdprManagerRaw>(1);
 
+	/**
+	 * @internal
+	 * @private
+	 */
+	readonly #sentinel$ = new ReplaySubject<boolean>(1);
+
 	#subscriptions = [] as SubscriptionLike[];
 
 	/**
@@ -72,19 +80,23 @@ export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerR
 			});
 
 		this.bannerWasShown$ = this.#bannerWasShown$.pipe(
+			takeUntil(this.#sentinel$),
 			distinctUntilChanged(),
 		);
 
 		this.enabled$ = this.#enabled$.pipe(
+			takeUntil(this.#sentinel$),
 			distinctUntilChanged(),
 		);
 
 		this.required$ = this.#required$.pipe(
+			takeUntil(this.#sentinel$),
 			distinctUntilChanged(),
 		);
 
 		this.raw$ = this.#raw$.pipe(
-			distinctUntilChanged((a, b) => deepEquals(a, b)),
+			takeUntil(this.#sentinel$),
+			distinctUntilChanged(deepEquals),
 		);
 
 		this.syncWithUnderlying();
@@ -125,6 +137,8 @@ export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerR
 			manager.addGroup(unwrapped);
 		});
 
+		this.#sentinel$.next(true);
+
 		this.#bannerWasShown$.complete();
 		this.#enabled$.complete();
 		this.#raw$.complete();
@@ -141,6 +155,7 @@ export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerR
 
 	lens<DerivedState>(derive: (guard: GdprManagerRaw) => DerivedState): Observable<DerivedState> {
 		return this.raw$.pipe(
+			takeUntil(this.#sentinel$),
 			map(derive),
 		);
 	}
@@ -151,6 +166,7 @@ export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerR
 
 	lensThrough<DerivedState>(derive: (managerRaw: GdprManagerRaw) => ObservableInput<DerivedState>): Observable<DerivedState> {
 		return this.raw$.pipe(
+			takeUntil(this.#sentinel$),
 			mergeMap(derive),
 		);
 	}
@@ -272,6 +288,11 @@ export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerR
 	}
 
 	//// Private overrides
+
+	/**
+	 * @internal
+	 * @protected
+	 */
 	protected override reduceGroupsPred(pred: (group: GdprGuardGroup) => boolean): boolean {
 		for (const group of this.getGroups()) {
 			if (pred(group)) {
@@ -281,6 +302,10 @@ export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerR
 		return false;
 	}
 
+	/**
+	 * @internal
+	 * @protected
+	 */
 	protected override forEachGroup(cb: (group: GdprGuardGroup) => void): this {
 		this.getGroups().forEach(cb);
 		return this;
@@ -289,16 +314,23 @@ export class RxGdprManager extends GdprManager implements RxWrapper<GdprManagerR
 	/**
 	 * Subscribe to the changes tied to the given {@link RxGdprGuardGroup} to properly keep in sync
 	 * @param group
+	 * @internal
 	 * @private
 	 */
 	private subscribeToChanges(group: RxGdprGuardGroup) {
 		const subscription = group.raw$.subscribe({
-			next: () => { this.syncWithUnderlying(); },
+			next: () => {
+				this.syncWithUnderlying();
+			},
 		});
 
 		this.#subscriptions.push(subscription);
 	}
 
+	/**
+	 * @internal
+	 * @private
+	 */
 	private syncWithUnderlying() {
 		this.bannerWasShown = this.underlyingManager.bannerWasShown;
 		this.enabled = this.underlyingManager.enabled;

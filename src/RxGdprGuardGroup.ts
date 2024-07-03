@@ -7,11 +7,11 @@ import {
 	mergeMap,
 	Observable,
 	ObservableInput,
-	ReplaySubject, SubscriptionLike,
+	ReplaySubject, SubscriptionLike, takeUntil,
 } from "rxjs";
-import deepEquals from "fast-deep-equal";
 import { RxGdprGuard } from "./RxGdprGuard";
 import type { GdprGuardCollection } from "gdpr-guard/dist/GdprGuardCollection";
+import { deepEquals } from "./utils";
 
 /**
  * A wrapper/decorator class for rxjs around a {@link GdprGuardGroup} instance (not one of its derived class)
@@ -33,9 +33,15 @@ export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGu
 	 * @warning It only emits distinct values
 	 */
 	public readonly required$: Observable<boolean>;
-	#raw$ = new ReplaySubject<GdprGuardGroupRaw>(1);
-	#enabled$ = new BehaviorSubject(false);
-	#required$ = new BehaviorSubject(false);
+	readonly #raw$ = new ReplaySubject<GdprGuardGroupRaw>(1);
+	readonly #enabled$ = new BehaviorSubject(false);
+	readonly #required$ = new BehaviorSubject(false);
+
+	/**
+	 * @internal
+	 * @private
+	 */
+	readonly #sentinel$ = new ReplaySubject<boolean>(1);
 
 	#subscriptions = [] as SubscriptionLike[];
 
@@ -59,14 +65,17 @@ export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGu
 			});
 
 		this.raw$ = this.#raw$.pipe(
-			distinctUntilChanged((a, b) => deepEquals(a, b)),
+			takeUntil(this.#sentinel$),
+			distinctUntilChanged(deepEquals),
 		);
 
 		this.enabled$ = this.#enabled$.pipe(
+			takeUntil(this.#sentinel$),
 			distinctUntilChanged(),
 		);
 
 		this.required$ = this.#required$.pipe(
+			takeUntil(this.#sentinel$),
 			distinctUntilChanged(),
 		);
 	}
@@ -100,6 +109,7 @@ export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGu
 
 	public lens<DerivedState>(derive: (groupRaw: GdprGuardGroupRaw) => DerivedState): Observable<DerivedState> {
 		return this.raw$.pipe(
+			takeUntil(this.#sentinel$),
 			map(derive),
 		);
 	}
@@ -110,6 +120,7 @@ export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGu
 
 	public lensThrough<DerivedState>(derive: (groupRaw: GdprGuardGroupRaw) => ObservableInput<DerivedState>): Observable<DerivedState> {
 		return this.raw$.pipe(
+			takeUntil(this.#sentinel$),
 			mergeMap(derive),
 		);
 	}
@@ -126,6 +137,7 @@ export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGu
 			group.addGuard(unwrapped);
 		});
 
+		this.#sentinel$.next(true);
 		this.#enabled$.complete();
 		this.#raw$.complete();
 		this.#required$.complete();
@@ -225,11 +237,19 @@ export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGu
 		return this.underlyingGroup.getGuards() as (RxGdprGuardGroup | RxGdprGuard)[];
 	}
 
+	/**
+	 * @internal
+	 * @protected
+	 */
 	protected override doForEachGuard(cb: (guard: GdprGuard) => void): this {
 		this.getGuards().forEach(cb);
 		return this;
 	}
 
+	/**
+	 * @internal
+	 * @protected
+	 */
 	protected override reduceSubGroupsPred(pred: (guard: GdprGuardGroup) => boolean): boolean {
 		for (const guard of this.getGuards()) {
 			if (guard instanceof GdprGuardGroup && pred(guard)) {
@@ -241,6 +261,10 @@ export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGu
 
 	//// Private overrides
 
+	/**
+	 * @internal
+	 * @protected
+	 */
 	protected override reduceSubGroups(extractor: (guard: (GdprGuardCollection & GdprGuard)) => (GdprGuard | null)): GdprGuard | null {
 		for (const guard of this.getGuards()) {
 			if (!(guard instanceof GdprGuardGroup)) {
@@ -257,6 +281,10 @@ export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGu
 		return null;
 	}
 
+	/**
+	 * @internal
+	 * @private
+	 */
 	private subscribeToChanges(guard: RxGdprGuard | RxGdprGuardGroup) {
 		const subscription = guard.raw$.subscribe({
 			next: () => { this.syncWithUnderlying(); },
@@ -265,6 +293,10 @@ export class RxGdprGuardGroup extends GdprGuardGroup implements RxWrapper<GdprGu
 		this.#subscriptions.push(subscription);
 	}
 
+	/**
+	 * @internal
+	 * @private
+	 */
 	private syncWithUnderlying() {
 		this.name = this.underlyingGroup.name;
 		this.enabled = this.underlyingGroup.enabled;

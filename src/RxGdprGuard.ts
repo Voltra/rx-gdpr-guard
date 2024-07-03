@@ -6,10 +6,10 @@ import {
 	mergeMap,
 	Observable,
 	ObservableInput,
-	ReplaySubject,
+	ReplaySubject, takeUntil,
 } from "rxjs";
-import deepEquals from "fast-deep-equal";
 import { RxWrapper } from "./interfaces";
+import { deepEquals } from "./utils";
 
 /**
  * A wrapper/decorator class for rxjs around a {@link GdprGuard} instance (not one of its derived class)
@@ -48,19 +48,28 @@ export class RxGdprGuard implements GdprGuard, RxWrapper<GdprGuardRaw, GdprGuard
 	#required$ = new BehaviorSubject(false);
 	#raw$ = new ReplaySubject<GdprGuardRaw>(1);
 
+	/**
+	 * @internal
+	 * @private
+	 */
+	#sentinel$ = new ReplaySubject<boolean>(1);
+
 	protected constructor(
 		private underlyingGuard: GdprGuard,
 	) {
 		this.enabled$ = this.#enabled$.pipe(
+			takeUntil(this.#sentinel$),
 			distinctUntilChanged(),
 		);
 
 		this.required$ = this.#required$.pipe(
+			takeUntil(this.#sentinel$),
 			distinctUntilChanged(),
 		);
 
 		this.raw$ = this.#raw$.pipe(
-			distinctUntilChanged((a, b) => deepEquals(a, b)),
+			takeUntil(this.#sentinel$),
+			distinctUntilChanged(deepEquals),
 		);
 
 		this.syncWithUnderlying();
@@ -90,6 +99,7 @@ export class RxGdprGuard implements GdprGuard, RxWrapper<GdprGuardRaw, GdprGuard
 	public unwrap(): GdprGuard {
 		const guard = this.underlyingGuard;
 
+		this.#sentinel$.next(true);
 		this.#enabled$.complete();
 		this.#raw$.complete();
 		this.#required$.complete();
@@ -99,6 +109,7 @@ export class RxGdprGuard implements GdprGuard, RxWrapper<GdprGuardRaw, GdprGuard
 
 	public lens<DerivedState>(derive: (guardRaw: GdprGuardRaw) => DerivedState): Observable<DerivedState> {
 		return this.raw$.pipe(
+			takeUntil(this.#sentinel$),
 			map(derive),
 		);
 	}
@@ -109,6 +120,7 @@ export class RxGdprGuard implements GdprGuard, RxWrapper<GdprGuardRaw, GdprGuard
 
 	public lensThrough<DerivedState>(derive: (guardRaw: GdprGuardRaw) => ObservableInput<DerivedState>): Observable<DerivedState> {
 		return this.raw$.pipe(
+			takeUntil(this.#sentinel$),
 			mergeMap(derive),
 		);
 	}
