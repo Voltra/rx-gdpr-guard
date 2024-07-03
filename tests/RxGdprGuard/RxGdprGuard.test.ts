@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { RxGdprGuard } from "@/RxGdprGuard";
 import { GdprGuard, GdprStorage, makeGuard } from "gdpr-guard";
 import { wrapTestCases } from "../utils";
+import { storageCases } from "../testCases";
 
 const guardFactory = ({
 	name = "my-guard",
@@ -9,26 +10,9 @@ const guardFactory = ({
 	storage = GdprStorage.ServerStorage,
 	required = false,
 	enabled = false,
-} = {}): GdprGuard => makeGuard(
-	name,
-	description,
-	storage,
-	required,
-	enabled,
-);
-
+} = {}): GdprGuard => makeGuard(name, description, storage, required, enabled);
 
 describe("RxGdprGuard", () => {
-	const storageCases = wrapTestCases([
-		GdprStorage.None,
-		GdprStorage.ServerStorage,
-		GdprStorage.Cookie,
-		GdprStorage.SessionStorage,
-		GdprStorage.LocalStorage,
-		GdprStorage.IndexedDb,
-		GdprStorage.FileSystem,
-	]);
-
 	const expectToBeInSync = (guard: GdprGuard, decorated: RxGdprGuard) => {
 		expect(decorated.name).toStrictEqual(guard.name);
 		expect(decorated.description).toStrictEqual(guard.description);
@@ -37,7 +21,10 @@ describe("RxGdprGuard", () => {
 		expect(decorated.enabled).toStrictEqual(guard.enabled);
 	};
 
-	const expectInvariantsToBeMaintained = (guard: GdprGuard, decorated: RxGdprGuard) => {
+	const expectInvariantsToBeMaintained = (
+		guard: GdprGuard,
+		decorated: RxGdprGuard,
+	) => {
 		expectToBeInSync(guard, decorated);
 	};
 
@@ -57,16 +44,20 @@ describe("RxGdprGuard", () => {
 		expectInvariantsToBeMaintained(guard, decorated);
 	});
 
-	describe(".wrap(guard)", () => { decorateTests("wrap"); });
-	describe(".decorate(guard)", () => { decorateTests("decorate"); });
+	describe(".wrap(guard)", () => {
+		decorateTests("wrap");
+	});
+	describe(".decorate(guard)", () => {
+		decorateTests("decorate");
+	});
 
 	describe("#enable()", () => {
 		it("calls the underlying guard's GdprGuard#enable()", () => {
 			const guard = guardFactory({
 				enabled: false,
 			});
-			const spy = vi.spyOn(guard, "enable");
 			const decorated = RxGdprGuard.decorate(guard);
+			const spy = vi.spyOn(guard, "enable");
 
 			decorated.enable();
 
@@ -117,8 +108,8 @@ describe("RxGdprGuard", () => {
 			const guard = guardFactory({
 				enabled: false,
 			});
-			const spy = vi.spyOn(guard, "disable");
 			const decorated = RxGdprGuard.decorate(guard);
+			const spy = vi.spyOn(guard, "disable");
 
 			decorated.disable();
 
@@ -184,8 +175,8 @@ describe("RxGdprGuard", () => {
 			const guard = guardFactory({
 				enabled: false,
 			});
-			const spy = vi.spyOn(guard, "isEnabled");
 			const decorated = RxGdprGuard.decorate(guard);
+			const spy = vi.spyOn(guard, "isEnabled");
 
 			const name = "SomeRandomName";
 
@@ -203,30 +194,37 @@ describe("RxGdprGuard", () => {
 			const decorated = RxGdprGuard.decorate(guard);
 
 			const name = "SomeRandomName";
-			expect(decorated.isEnabled(name)).toStrictEqual(guard.isEnabled(name));
-			expect(decorated.isEnabled(guard.name)).toStrictEqual(guard.isEnabled(guard.name));
+			expect(decorated.isEnabled(name)).toStrictEqual(
+				guard.isEnabled(name),
+			);
+			expect(decorated.isEnabled(guard.name)).toStrictEqual(
+				guard.isEnabled(guard.name),
+			);
 
 			decorated.enable();
-			expect(decorated.isEnabled(guard.name)).toStrictEqual(guard.isEnabled(guard.name));
+			expect(decorated.isEnabled(guard.name)).toStrictEqual(
+				guard.isEnabled(guard.name),
+			);
 
 			decorated.disable();
-			expect(decorated.isEnabled(guard.name)).toStrictEqual(guard.isEnabled(guard.name));
+			expect(decorated.isEnabled(guard.name)).toStrictEqual(
+				guard.isEnabled(guard.name),
+			);
 			expectInvariantsToBeMaintained(guard, decorated);
 		});
 
-		it.each(wrapTestCases([
-			"some randome name",
-			"gdpr-guard",
-			"guard",
-		]))("returns false for any guard name that isn't this guard's name", name => {
-			const guard = guardFactory({
-				enabled: true,
-			});
-			const decorated = RxGdprGuard.decorate(guard);
+		it.each(wrapTestCases(["some randome name", "gdpr-guard", "guard"]))(
+			"returns false for any guard name that isn't this guard's name",
+			name => {
+				const guard = guardFactory({
+					enabled: true,
+				});
+				const decorated = RxGdprGuard.decorate(guard);
 
-			expect(decorated.isEnabled(name)).toBeFalsy();
-			expectInvariantsToBeMaintained(guard, decorated);
-		});
+				expect(decorated.isEnabled(name)).toBeFalsy();
+				expectInvariantsToBeMaintained(guard, decorated);
+			},
+		);
 
 		it("returns the value of guard.enabled if name is this guard's name", () => {
 			const guard = guardFactory({
@@ -235,13 +233,17 @@ describe("RxGdprGuard", () => {
 			const decorated = RxGdprGuard.decorate(guard);
 
 			expect(decorated.isEnabled(guard.name)).toBeFalsy();
-			expect(decorated.isEnabled(guard.name)).toStrictEqual(guard.enabled);
+			expect(decorated.isEnabled(guard.name)).toStrictEqual(
+				guard.enabled,
+			);
 			expectInvariantsToBeMaintained(guard, decorated);
 
 			decorated.enable();
 
 			expect(decorated.isEnabled(guard.name)).toBeTruthy();
-			expect(decorated.isEnabled(guard.name)).toStrictEqual(guard.enabled);
+			expect(decorated.isEnabled(guard.name)).toStrictEqual(
+				guard.enabled,
+			);
 			expectInvariantsToBeMaintained(guard, decorated);
 		});
 	});
@@ -251,8 +253,8 @@ describe("RxGdprGuard", () => {
 			const guard = guardFactory({
 				enabled: false,
 			});
-			const spy = vi.spyOn(guard, "toggle");
 			const decorated = RxGdprGuard.decorate(guard);
+			const spy = vi.spyOn(guard, "toggle");
 
 			decorated.toggle();
 
@@ -343,8 +345,8 @@ describe("RxGdprGuard", () => {
 				enabled: false,
 				required: false,
 			});
-			const spy = vi.spyOn(guard, "makeRequired");
 			const decorated = RxGdprGuard.decorate(guard);
+			const spy = vi.spyOn(guard, "makeRequired");
 
 			decorated.makeRequired();
 
@@ -411,8 +413,8 @@ describe("RxGdprGuard", () => {
 				enabled: false,
 				required: false,
 			});
-			const spy = vi.spyOn(guard, "enableForStorage");
 			const decorated = RxGdprGuard.decorate(guard);
+			const spy = vi.spyOn(guard, "enableForStorage");
 			const storage = GdprStorage.FileSystem;
 
 			decorated.enableForStorage(storage);
@@ -422,55 +424,67 @@ describe("RxGdprGuard", () => {
 			expectInvariantsToBeMaintained(guard, decorated);
 		});
 
-		it.each(storageCases)("does nothing if storage is different from the guard's storage, and is not GdprStorage.All", storage => {
-			const guard = guardFactory({
-				enabled: false,
-				storage: storage === GdprStorage.ServerStorage ? GdprStorage.None : GdprStorage.ServerStorage
-			});
+		it.each(storageCases)(
+			"does nothing if storage is different from the guard's storage, and is not GdprStorage.All",
+			storage => {
+				const guard = guardFactory({
+					enabled: false,
+					storage:
+						storage === GdprStorage.ServerStorage
+							? GdprStorage.None
+							: GdprStorage.ServerStorage,
+				});
 
-			const decorated = RxGdprGuard.decorate(guard);
+				const decorated = RxGdprGuard.decorate(guard);
 
-			const expected = decorated.raw();
+				const expected = decorated.raw();
 
-			decorated.enableForStorage(storage);
+				decorated.enableForStorage(storage);
 
-			const result = decorated.raw();
+				const result = decorated.raw();
 
-			expect(result).toStrictEqual(expected);
-			expectInvariantsToBeMaintained(guard, decorated);
-		});
+				expect(result).toStrictEqual(expected);
+				expectInvariantsToBeMaintained(guard, decorated);
+			},
+		);
 
-		it.each(storageCases)("does nothing if the guard is already enabled", storage => {
-			const guard = guardFactory({
-				storage,
-				enabled: true,
-			});
+		it.each(storageCases)(
+			"does nothing if the guard is already enabled",
+			storage => {
+				const guard = guardFactory({
+					storage,
+					enabled: true,
+				});
 
-			const decorated = RxGdprGuard.decorate(guard);
+				const decorated = RxGdprGuard.decorate(guard);
 
-			const expected = decorated.raw();
+				const expected = decorated.raw();
 
-			decorated.enableForStorage(storage);
+				decorated.enableForStorage(storage);
 
-			const result = decorated.raw();
+				const result = decorated.raw();
 
-			expect(result).toStrictEqual(expected);
-			expectInvariantsToBeMaintained(guard, decorated);
-		});
+				expect(result).toStrictEqual(expected);
+				expectInvariantsToBeMaintained(guard, decorated);
+			},
+		);
 
-		it.each(storageCases)("enables if storage is the guard's storage and the guard wasn't already enabled", storage => {
-			const guard = guardFactory({
-				storage,
-				enabled: false,
-			});
+		it.each(storageCases)(
+			"enables if storage is the guard's storage and the guard wasn't already enabled",
+			storage => {
+				const guard = guardFactory({
+					storage,
+					enabled: false,
+				});
 
-			const decorated = RxGdprGuard.decorate(guard);
+				const decorated = RxGdprGuard.decorate(guard);
 
-			decorated.enableForStorage(storage);
+				decorated.enableForStorage(storage);
 
-			expect(decorated.enabled).toBeTruthy();
-			expectInvariantsToBeMaintained(guard, decorated);
-		});
+				expect(decorated.enabled).toBeTruthy();
+				expectInvariantsToBeMaintained(guard, decorated);
+			},
+		);
 
 		//TODO: Enable this test case once the following issues have been fixed in gdpr-guard
 		// https://github.com/Voltra/gdpr-guard/blob/413b053321b3eea940a1328ccfd025841d67926d/src/GdprGuard.ts#L161
@@ -496,8 +510,8 @@ describe("RxGdprGuard", () => {
 				enabled: false,
 				required: false,
 			});
-			const spy = vi.spyOn(guard, "disableForStorage");
 			const decorated = RxGdprGuard.decorate(guard);
+			const spy = vi.spyOn(guard, "disableForStorage");
 			const storage = GdprStorage.FileSystem;
 
 			decorated.disableForStorage(storage);
@@ -507,55 +521,67 @@ describe("RxGdprGuard", () => {
 			expectInvariantsToBeMaintained(guard, decorated);
 		});
 
-		it.each(storageCases)("does nothing if storage is different from the guard's storage, and is not GdprStorage.All", storage => {
-			const guard = guardFactory({
-				enabled: false,
-				storage: storage === GdprStorage.ServerStorage ? GdprStorage.None : GdprStorage.ServerStorage
-			});
+		it.each(storageCases)(
+			"does nothing if storage is different from the guard's storage, and is not GdprStorage.All",
+			storage => {
+				const guard = guardFactory({
+					enabled: false,
+					storage:
+						storage === GdprStorage.ServerStorage
+							? GdprStorage.None
+							: GdprStorage.ServerStorage,
+				});
 
-			const decorated = RxGdprGuard.decorate(guard);
+				const decorated = RxGdprGuard.decorate(guard);
 
-			const expected = decorated.raw();
+				const expected = decorated.raw();
 
-			decorated.disableForStorage(storage);
+				decorated.disableForStorage(storage);
 
-			const result = decorated.raw();
+				const result = decorated.raw();
 
-			expect(result).toStrictEqual(expected);
-			expectInvariantsToBeMaintained(guard, decorated);
-		});
+				expect(result).toStrictEqual(expected);
+				expectInvariantsToBeMaintained(guard, decorated);
+			},
+		);
 
-		it.each(storageCases)("does nothing if the guard is already disabled", storage => {
-			const guard = guardFactory({
-				storage,
-				enabled: false,
-			});
+		it.each(storageCases)(
+			"does nothing if the guard is already disabled",
+			storage => {
+				const guard = guardFactory({
+					storage,
+					enabled: false,
+				});
 
-			const decorated = RxGdprGuard.decorate(guard);
+				const decorated = RxGdprGuard.decorate(guard);
 
-			const expected = decorated.raw();
+				const expected = decorated.raw();
 
-			decorated.disableForStorage(storage);
+				decorated.disableForStorage(storage);
 
-			const result = decorated.raw();
+				const result = decorated.raw();
 
-			expect(result).toStrictEqual(expected);
-			expectInvariantsToBeMaintained(guard, decorated);
-		});
+				expect(result).toStrictEqual(expected);
+				expectInvariantsToBeMaintained(guard, decorated);
+			},
+		);
 
-		it.each(storageCases)("disables if storage is the guard's storage and the guard wasn't already disabled", storage => {
-			const guard = guardFactory({
-				storage,
-				enabled: true,
-			});
+		it.each(storageCases)(
+			"disables if storage is the guard's storage and the guard wasn't already disabled",
+			storage => {
+				const guard = guardFactory({
+					storage,
+					enabled: true,
+				});
 
-			const decorated = RxGdprGuard.decorate(guard);
+				const decorated = RxGdprGuard.decorate(guard);
 
-			decorated.disableForStorage(storage);
+				decorated.disableForStorage(storage);
 
-			expect(decorated.enabled).toBeFalsy();
-			expectInvariantsToBeMaintained(guard, decorated);
-		});
+				expect(decorated.enabled).toBeFalsy();
+				expectInvariantsToBeMaintained(guard, decorated);
+			},
+		);
 
 		//TODO: Enable this test case once the following issues have been fixed in gdpr-guard
 		// https://github.com/Voltra/gdpr-guard/blob/413b053321b3eea940a1328ccfd025841d67926d/src/GdprGuard.ts#L161
@@ -581,8 +607,8 @@ describe("RxGdprGuard", () => {
 				enabled: false,
 				required: false,
 			});
-			const spy = vi.spyOn(guard, "toggleForStorage");
 			const decorated = RxGdprGuard.decorate(guard);
+			const spy = vi.spyOn(guard, "toggleForStorage");
 			const storage = GdprStorage.FileSystem;
 
 			decorated.toggleForStorage(storage);
@@ -592,51 +618,63 @@ describe("RxGdprGuard", () => {
 			expectInvariantsToBeMaintained(guard, decorated);
 		});
 
-		it.each(storageCases)("does nothing if storage is different from the guard's storage, and is not GdprStorage.All", storage => {
-			const guard = guardFactory({
-				enabled: false,
-				storage: storage === GdprStorage.ServerStorage ? GdprStorage.None : GdprStorage.ServerStorage
-			});
+		it.each(storageCases)(
+			"does nothing if storage is different from the guard's storage, and is not GdprStorage.All",
+			storage => {
+				const guard = guardFactory({
+					enabled: false,
+					storage:
+						storage === GdprStorage.ServerStorage
+							? GdprStorage.None
+							: GdprStorage.ServerStorage,
+				});
 
-			const decorated = RxGdprGuard.decorate(guard);
+				const decorated = RxGdprGuard.decorate(guard);
 
-			const expected = decorated.raw();
+				const expected = decorated.raw();
 
-			decorated.toggleForStorage(storage);
+				decorated.toggleForStorage(storage);
 
-			const result = decorated.raw();
+				const result = decorated.raw();
 
-			expect(result).toStrictEqual(expected);
-			expectInvariantsToBeMaintained(guard, decorated);
-		});
+				expect(result).toStrictEqual(expected);
+				expectInvariantsToBeMaintained(guard, decorated);
+			},
+		);
 
-		it.each(storageCases)("disables the guard if it is enabled and storage is the guard's storage", storage => {
-			const guard = guardFactory({
-				storage,
-				enabled: true,
-			});
+		it.each(storageCases)(
+			"disables the guard if it is enabled and storage is the guard's storage",
+			storage => {
+				const guard = guardFactory({
+					storage,
+					enabled: true,
+				});
 
-			const decorated = RxGdprGuard.decorate(guard);
+				const decorated = RxGdprGuard.decorate(guard);
 
-			decorated.toggleForStorage(storage);
+				decorated.toggleForStorage(storage);
 
-			expect(decorated.enabled).toBeFalsy();
-			expectInvariantsToBeMaintained(guard, decorated);
-		});
+				expect(decorated.enabled).toBeFalsy();
+				expectInvariantsToBeMaintained(guard, decorated);
+			},
+		);
 
-		it.each(storageCases)("enables the guard if storage is the guard's storage and the guard wasn't enabled", storage => {
-			const guard = guardFactory({
-				storage,
-				enabled: false,
-			});
+		it.each(storageCases)(
+			"enables the guard if storage is the guard's storage and the guard wasn't enabled",
+			storage => {
+				const guard = guardFactory({
+					storage,
+					enabled: false,
+				});
 
-			const decorated = RxGdprGuard.decorate(guard);
+				const decorated = RxGdprGuard.decorate(guard);
 
-			decorated.toggleForStorage(storage);
+				decorated.toggleForStorage(storage);
 
-			expect(decorated.enabled).toBeTruthy();
-			expectInvariantsToBeMaintained(guard, decorated);
-		});
+				expect(decorated.enabled).toBeTruthy();
+				expectInvariantsToBeMaintained(guard, decorated);
+			},
+		);
 
 		//TODO: Enable this test case once the following issues have been fixed in gdpr-guard
 		// https://github.com/Voltra/gdpr-guard/blob/413b053321b3eea940a1328ccfd025841d67926d/src/GdprGuard.ts#L161
@@ -644,5 +682,42 @@ describe("RxGdprGuard", () => {
 		/*it.each(storageCases)("toggles if storage is GdprStorage.All and the guard wasn't already enabled", storage => {
 			//TODO: Write the two  tests for toggle and GdprStorage.All
 		});*/
+	});
+
+	describe("#raw()", () => {
+		it("calls the underlying guard's GdprGuard#raw()", () => {
+			const guard = guardFactory({
+				enabled: false,
+				required: false,
+			});
+			const decorated = RxGdprGuard.decorate(guard);
+			const spy = vi.spyOn(guard, "raw");
+
+			decorated.raw();
+
+			expect(spy).toHaveBeenCalledOnce();
+			expectInvariantsToBeMaintained(guard, decorated);
+		});
+
+		it.each(
+			wrapTestCases([
+				guardFactory({
+					enabled: false,
+					required: false,
+				}),
+			]),
+		)(
+			"returns the result of the underlying guard's GdprGuard#raw()",
+			guard => {
+				const expected = guard.raw();
+
+				const decorated = RxGdprGuard.decorate(guard);
+
+				const result = decorated.raw();
+
+				expect(result).toStrictEqual(expected);
+				expectInvariantsToBeMaintained(guard, decorated);
+			},
+		);
 	});
 });

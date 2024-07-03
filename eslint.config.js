@@ -1,5 +1,6 @@
 const eslint = require('@eslint/js');
 const tseslint = require('typescript-eslint');
+const eslintPrettier = require("eslint-config-prettier");
 
 module.exports = tseslint.config(
 	{
@@ -8,6 +9,7 @@ module.exports = tseslint.config(
 			eslint.configs.recommended,
 			...tseslint.configs.strictTypeChecked,
 			...tseslint.configs.stylisticTypeChecked,
+			eslintPrettier,
 		],
 		languageOptions: {
 			parserOptions: {

@@ -6,7 +6,8 @@ import {
 	mergeMap,
 	Observable,
 	ObservableInput,
-	ReplaySubject, takeUntil,
+	ReplaySubject,
+	takeUntil,
 } from "rxjs";
 import { RxWrapper } from "./interfaces";
 import { deepEquals } from "./utils";
@@ -14,7 +15,9 @@ import { deepEquals } from "./utils";
 /**
  * A wrapper/decorator class for rxjs around a {@link GdprGuard} instance (not one of its derived class)
  */
-export class RxGdprGuard implements GdprGuard, RxWrapper<GdprGuardRaw, GdprGuard> {
+export class RxGdprGuard
+	implements GdprGuard, RxWrapper<GdprGuardRaw, GdprGuard>
+{
 	// @ts-expect-error TS2564 We know it's properly initialized
 	public name: string;
 
@@ -44,19 +47,17 @@ export class RxGdprGuard implements GdprGuard, RxWrapper<GdprGuardRaw, GdprGuard
 	 * @warning It only emits (deeply) distinct values
 	 */
 	public readonly raw$: Observable<GdprGuardRaw>;
-	#enabled$ = new BehaviorSubject(false);
-	#required$ = new BehaviorSubject(false);
-	#raw$ = new ReplaySubject<GdprGuardRaw>(1);
+	readonly #enabled$ = new BehaviorSubject(false);
+	readonly #required$ = new BehaviorSubject(false);
+	readonly #raw$ = new ReplaySubject<GdprGuardRaw>(1);
 
 	/**
 	 * @internal
 	 * @private
 	 */
-	#sentinel$ = new ReplaySubject<boolean>(1);
+	readonly #sentinel$ = new ReplaySubject<boolean>(1);
 
-	protected constructor(
-		private underlyingGuard: GdprGuard,
-	) {
+	protected constructor(private underlyingGuard: GdprGuard) {
 		this.enabled$ = this.#enabled$.pipe(
 			takeUntil(this.#sentinel$),
 			distinctUntilChanged(),
@@ -107,25 +108,25 @@ export class RxGdprGuard implements GdprGuard, RxWrapper<GdprGuardRaw, GdprGuard
 		return guard;
 	}
 
-	public lens<DerivedState>(derive: (guardRaw: GdprGuardRaw) => DerivedState): Observable<DerivedState> {
-		return this.raw$.pipe(
-			takeUntil(this.#sentinel$),
-			map(derive),
-		);
+	public lens<DerivedState>(
+		derive: (guardRaw: GdprGuardRaw) => DerivedState,
+	): Observable<DerivedState> {
+		return this.raw$.pipe(takeUntil(this.#sentinel$), map(derive));
 	}
 
 	public map<T>(mapper: (guardRaw: GdprGuardRaw) => T): Observable<T> {
 		return this.lens<T>(mapper);
 	}
 
-	public lensThrough<DerivedState>(derive: (guardRaw: GdprGuardRaw) => ObservableInput<DerivedState>): Observable<DerivedState> {
-		return this.raw$.pipe(
-			takeUntil(this.#sentinel$),
-			mergeMap(derive),
-		);
+	public lensThrough<DerivedState>(
+		derive: (guardRaw: GdprGuardRaw) => ObservableInput<DerivedState>,
+	): Observable<DerivedState> {
+		return this.raw$.pipe(takeUntil(this.#sentinel$), mergeMap(derive));
 	}
 
-	public flatMap<T>(mapper: (guardRaw: GdprGuardRaw) => ObservableInput<T>): Observable<T> {
+	public flatMap<T>(
+		mapper: (guardRaw: GdprGuardRaw) => ObservableInput<T>,
+	): Observable<T> {
 		return this.lensThrough(mapper);
 	}
 
@@ -181,13 +182,16 @@ export class RxGdprGuard implements GdprGuard, RxWrapper<GdprGuardRaw, GdprGuard
 		return this.underlyingGuard.raw();
 	}
 
+	/**
+	 * @internal
+	 * @protected
+	 */
 	protected syncWithUnderlying() {
 		this.name = this.underlyingGuard.name;
 		this.enabled = this.underlyingGuard.enabled;
 		this.description = this.underlyingGuard.description;
 		this.storage = this.underlyingGuard.storage;
 		this.required = this.underlyingGuard.required;
-
 
 		this.#enabled$.next(this.enabled);
 		this.#required$.next(this.required);

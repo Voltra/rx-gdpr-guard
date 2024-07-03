@@ -4,15 +4,16 @@ import { RxGdprManager } from "@/RxGdprManager";
 import { RxGdprGuardGroup } from "@/RxGdprGuardGroup";
 import { RxGdprGuard } from "@/RxGdprGuard";
 
-const managerFactory = () => GdprManagerBuilder.make()
-	.startRequiredGroup(GdprStorage.None, "a", "description A")
-	.withEnabledGuard("aa", "description AA", GdprStorage.Cookie)
-	.withEnabledGuard("ab", "description AB", GdprStorage.LocalStorage)
-	.endGroup()
-	.startDisabledGroup(GdprStorage.None, "b", "description B")
-	.withDisabledGuard("ba", "description BA", GdprStorage.ServerStorage)
-	.endGroup()
-	.build();
+const managerFactory = () =>
+	GdprManagerBuilder.make()
+		.startRequiredGroup(GdprStorage.None, "a", "description A")
+		.withEnabledGuard("aa", "description AA", GdprStorage.Cookie)
+		.withEnabledGuard("ab", "description AB", GdprStorage.LocalStorage)
+		.endGroup()
+		.startDisabledGroup(GdprStorage.None, "b", "description B")
+		.withDisabledGuard("ba", "description BA", GdprStorage.ServerStorage)
+		.endGroup()
+		.build();
 
 const extractPublicApiState = (manager: GdprManager) => {
 	return {
@@ -25,7 +26,7 @@ const extractPublicApiState = (manager: GdprManager) => {
 };
 
 describe("RxGdprManager", () => {
-	const decorateTests = (factoryName: "decorate"|"wrap") => {
+	const decorateTests = (factoryName: "decorate" | "wrap") => {
 		it("decorates the underlying manager's groups with RxGdprGuardGroup", () => {
 			expect.hasAssertions();
 
@@ -78,8 +79,12 @@ describe("RxGdprManager", () => {
 		expect(decoratedState).toStrictEqual(originalState);
 	});
 
-	describe(".decorate(manager)", () => { decorateTests("decorate"); });
-	describe(".wrap(manager)", () => { decorateTests("wrap"); });
+	describe(".decorate(manager)", () => {
+		decorateTests("decorate");
+	});
+	describe(".wrap(manager)", () => {
+		decorateTests("wrap");
+	});
 
 	describe("#events", () => {
 		it("is the same event hub instance as the wrapped manager's", () => {

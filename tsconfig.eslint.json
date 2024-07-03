@@ -6,6 +6,10 @@
 		"vitest.config.ts"
 	],
 	"compilerOptions": {
+		"paths": {
+			"@/*": ["./src/*"],
+			"@tests/*": ["./tests/*"],
+		},
 		"declaration": false,
 		"composite": false,
 		"target": "ES6",
