@@ -8,8 +8,8 @@ const here = (uri = "") => fileURLToPath(new URL(uri, import.meta.url));
 export default defineConfig({
 	clearScreen: true,
 	test: {
-		include: ['./tests/**/*.{test,spec}.ts'],
-		includeSource: ['./src/**/*.ts'],
+		include: ["./tests/**/*.{test,spec}.ts"],
+		includeSource: ["./src/**/*.ts"],
 		open: false,
 		restoreMocks: true,
 		unstubEnvs: true,

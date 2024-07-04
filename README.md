@@ -73,7 +73,7 @@ manager instanceof GdprManager; // true
 
 manager.disable();
 manager.enable();
-manager.getGuard(""); // RxGdprGuard|RxGdprGuardGroup|null
+manager.getGuard("my-guard"); // RxGdprGuard|RxGdprGuardGroup|null
 ```
 
 ### Subscribe to observables
@@ -89,20 +89,58 @@ manager.required$.subscribe(/* [...] */);
 
 ### Access data via lenses
 
+These examples use `RxGdprManager` but it also works for `RxGdprGuard` and `RxGdprGuardGroup`.
+
 ```javascript
 const manager = RxGdprManager.wrap(myGdprManager);
+```
 
-manager.lens(managerRaw => managerRaw.groups)
-	.subscribe(groups => { /* [...] */ });
+```javascript
+manager.lensRaw(managerRaw => managerRaw.groups)
+	.subscribe(groups => {
+		/* [...] */
+	});
 //OR
-manager.map(managerRaw => managerRaw.groups)
-	.subscribe(groups => { /* [...] */ });
+manager.mapRaw(managerRaw => managerRaw.groups)
+	.subscribe(groups => {
+		/* [...] */
+	});
+```
 
-manager.lensThrough(managerRaw => rxFetchData(managerRaw))
-	.subscribe(response => { /* [...] */ });
+```javascript
+manager.lensRawThrough(managerRaw => rxFetchData(managerRaw))
+	.subscribe(response => {
+		/* [...] */
+	});
 // OR
-manager.flatMap(managerRaw => rxFetchData(managerRaw))
-	.subscribe(response => { /* [...] */ });
+manager.flatMapRaw(managerRaw => rxFetchData(managerRaw))
+	.subscribe(response => {
+		/* [...] */
+	});
+```
+
+```javascript
+manager.lens(rxManager => rxManager.getGroups())
+	.subscribe(groups => {
+		/* [...] */
+	});
+//OR
+manager.mapRaw(rxManager => rxManager.getGroups())
+	.subscribe(groups => {
+		/* [...] */
+	});
+```
+
+```javascript
+manager.lensThrough(rxManager => rxManager.getGroup("my-group").enabled$)
+	.subscribe(isEnabled => {
+		/* [...] */
+	});
+// OR
+manager.flatMap(rxManager => rxManager.getGroup("my-group").enabled$)
+	.subscribe(isEnabled => {
+		/* [...] */
+	});
 ```
 
 ### Access groups

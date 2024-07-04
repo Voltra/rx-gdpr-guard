@@ -9,38 +9,69 @@ import type { Observable, ObservableInput } from "rxjs";
 export interface RxWrapper<
 	Raw extends GdprGuardRaw | GdprManagerRaw,
 	Guard extends GdprGuard | GdprManager,
+	Wrapped
 > {
 	readonly raw$: Observable<Raw>;
+
+	readonly $: Observable<Wrapped>;
+
+	/**
+	 * Create a lens into the guard's state
+	 * @param derive - The function used to derive state from the guard's state
+	 */
+	lens<DerivedState>(derive: (guard: Wrapped) => DerivedState): Observable<DerivedState>;
+
+	/**
+	 * Map into an observable from the guard's state
+	 * @alias lens
+	 * @param mapper - The function used to derive state from the guard's state
+	 */
+	map<T>(mapper: (guard: Wrapped) => T): Observable<T>;
+
+	/**
+	 * Create a lens by passing through the guard's state
+	 * @param derive - The function used to derive an observable from the guard's state
+	 */
+	lensThrough<DerivedState>(
+		derive: (guard: Wrapped) => ObservableInput<DerivedState>,
+	): Observable<DerivedState>;
+
+	/**
+	 * Flat map into an observable from the guard's state
+	 * @alias lensRawThrough
+	 * @param mapper - The function used to derive an observable from the guard's state
+	 */
+	flatMap<T>(mapper: (guard: Wrapped) => ObservableInput<T>): Observable<T>;
 
 	/**
 	 * Create a lens into the guard's raw state
 	 * @param derive - The function used to derive state from the guard's raw state
 	 */
-	lens<DerivedState>(
+	lensRaw<DerivedState>(
 		derive: (guard: Raw) => DerivedState,
 	): Observable<DerivedState>;
 
 	/**
 	 * Map into an observable from the guard's raw state
-	 * @alias lens
+	 * @alias lensRaw
 	 * @param mapper - The function used to derive state from the guard's raw state
 	 */
-	map<T>(mapper: (guard: Raw) => T): Observable<T>;
+	mapRaw<T>(mapper: (guard: Raw) => T): Observable<T>;
 
 	/**
 	 * Create a lens by passing through the guard's raw state
 	 * @param derive - The function used to derive an observable from the guard's raw state
 	 */
-	lensThrough<DerivedState>(
+	lensRawThrough<DerivedState>(
 		derive: (guard: Raw) => ObservableInput<DerivedState>,
 	): Observable<DerivedState>;
 
 	/**
 	 * Flat map into an observable from the guard's raw state
-	 * @alias lensThrough
+	 * @alias lensRawThrough
 	 * @param mapper - The function used to derive an observable from the guard's raw state
 	 */
-	flatMap<T>(mapper: (guard: Raw) => ObservableInput<T>): Observable<T>;
+	flatMapRaw<T>(mapper: (guard: Raw) => ObservableInput<T>): Observable<T>;
 
 	/**
 	 * Undo the RX wrapping and restore the guard/group/manager to a non-wrapped state

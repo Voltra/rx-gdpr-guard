@@ -3,7 +3,8 @@
 	"include": [
 		"src/**/*.ts",
 		"tests/**/*.ts",
-		"vitest.config.ts"
+		"*.config.ts",
+		"*.config.js"
 	],
 	"compilerOptions": {
 		"paths": {

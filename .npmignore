@@ -1,3 +1,11 @@
+.husky/
+.editorconfig
+.browserslistrc
+.nvmrc
+*.config.js
+*.config.ts
+tsconfig.*.json
+tests/
 ####
 tmp/
 .brackets.json

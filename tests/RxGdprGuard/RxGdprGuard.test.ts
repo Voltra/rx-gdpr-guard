@@ -3,6 +3,13 @@ import { RxGdprGuard } from "@/RxGdprGuard";
 import { GdprGuard, GdprStorage, makeGuard } from "gdpr-guard";
 import { wrapTestCases } from "../utils";
 import { storageCases } from "../testCases";
+import {
+	EmptyError,
+	firstValueFrom,
+	map,
+	Observable,
+	Subscription,
+} from "rxjs";
 
 const guardFactory = ({
 	name = "my-guard",
@@ -11,6 +18,37 @@ const guardFactory = ({
 	required = false,
 	enabled = false,
 } = {}): GdprGuard => makeGuard(name, description, storage, required, enabled);
+
+const index = () => map((_, i) => i);
+
+const makeCounterState = (obs$: Observable<unknown>) => {
+	const ret = {
+		counter: 0,
+	} as unknown as {
+		counter: number,
+		subscription: Subscription,
+	};
+
+	ret.subscription = obs$.pipe(
+		index(),
+	).subscribe(() => {
+		ret.counter += 1;
+	});
+
+	return ret;
+};
+
+const withinCounterState = async (obs$: Observable<unknown>, fn: (state: ReturnType<typeof makeCounterState>) => Promise<unknown>) => {
+	const state = makeCounterState(obs$);
+
+	try {
+		await fn(state);
+	} finally {
+		state.subscription.unsubscribe();
+	}
+
+	return state;
+};
 
 describe("RxGdprGuard", () => {
 	const expectToBeInSync = (guard: GdprGuard, decorated: RxGdprGuard) => {
@@ -707,7 +745,7 @@ describe("RxGdprGuard", () => {
 				}),
 			]),
 		)(
-			"returns the result of the underlying guard's GdprGuard#raw()",
+			"returns the result of the underlying guard's GdprGuard#raw(): %p",
 			guard => {
 				const expected = guard.raw();
 
@@ -719,5 +757,316 @@ describe("RxGdprGuard", () => {
 				expectInvariantsToBeMaintained(guard, decorated);
 			},
 		);
+	});
+
+	describe("#enabled$", () => {
+		it("emits the initial value of RxGdprGuard#enabled as its first value", async () => {
+			expect.hasAssertions();
+			const guard = guardFactory();
+			const wrapped = RxGdprGuard.wrap(guard);
+
+			await withinCounterState(wrapped.enabled$, async state => {
+				const isEnabled = await firstValueFrom(wrapped.enabled$);
+
+				expect(isEnabled).toStrictEqual(wrapped.enabled);
+				expect(state.counter).toBe(1);
+			});
+		});
+
+		it("stop emitting values after RxGdprGuard#unwrap() has been called", async () => {
+			expect.hasAssertions();
+			const guard = guardFactory();
+			const wrapped = RxGdprGuard.wrap(guard);
+
+			await withinCounterState(wrapped.enabled$, async state => {
+				await firstValueFrom(wrapped.enabled$);
+
+				wrapped.unwrap();
+
+				wrapped.toggle();
+
+				await expect(() => firstValueFrom(wrapped.enabled$)).rejects.toThrow(EmptyError);
+				expect(state.counter).toBe(1);
+			});
+		});
+
+		it.each([
+			{
+				guard: guardFactory({ enabled: false }),
+				method: "enable",
+				args: [],
+			},
+			{
+				guard: guardFactory({ enabled: true }),
+				method: "disable",
+				args: [],
+			},
+			{
+				guard: guardFactory({ enabled: false }),
+				method: "toggle",
+				args: [],
+			},
+			{
+				guard: guardFactory({ enabled: true }),
+				method: "toggle",
+				args: [],
+			},
+			{
+				guard: guardFactory({ enabled: false }),
+				method: "makeRequired",
+				args: [],
+			},
+			{
+				guard: guardFactory({ enabled: false, storage: GdprStorage.Cookie }),
+				method: "enableForStorage",
+				args: [GdprStorage.Cookie],
+			},
+			{
+				guard: guardFactory({ enabled: true, storage: GdprStorage.Cookie }),
+				method: "disableForStorage",
+				args: [GdprStorage.Cookie],
+			},
+			{
+				guard: guardFactory({ enabled: false, storage: GdprStorage.Cookie }),
+				method: "toggleForStorage",
+				args: [GdprStorage.Cookie],
+			},
+			{
+				guard: guardFactory({ enabled: true, storage: GdprStorage.Cookie }),
+				method: "toggleForStorage",
+				args: [GdprStorage.Cookie],
+			},
+		] as const)("emits a new value when RxGdprGuard#enabled changes: %p", async ({ guard, method, args }) => {
+			expect.hasAssertions();
+			const wrapped = RxGdprGuard.wrap(guard);
+
+			await withinCounterState(wrapped.enabled$, async state => {
+				await firstValueFrom(wrapped.enabled$);
+
+				// @ts-expect-error TS2556 I know what I'm doing with the args
+				wrapped[method](...args);
+
+				const isEnabled = await firstValueFrom(wrapped.enabled$);
+
+				expect(isEnabled).toStrictEqual(wrapped.enabled);
+				expect(state.counter).toBe(2);
+			});
+		});
+
+		it.each([
+			{
+				guard: guardFactory({ enabled: false }),
+				method: "disable",
+				args: [],
+			},
+			{
+				guard: guardFactory({ enabled: true }),
+				method: "enable",
+				args: [],
+			},
+			{
+				guard: guardFactory({ enabled: true }),
+				method: "makeRequired",
+				args: [],
+			},
+			{
+				guard: guardFactory({ enabled: false }),
+				method: "raw",
+				args: [],
+			},
+			{
+				guard: guardFactory({ enabled: true }),
+				method: "raw",
+				args: [],
+			},
+			{
+				guard: guardFactory({ enabled: false, storage: GdprStorage.FileSystem }),
+				method: "disableForStorage",
+				args: [GdprStorage.FileSystem],
+			},
+			{
+				guard: guardFactory({ enabled: true, storage: GdprStorage.ServerStorage }),
+				method: "enableForStorage",
+				args: [GdprStorage.ServerStorage],
+			},
+			{
+				guard: guardFactory({ enabled: true, name: "not-rando" }),
+				method: "isEnabled",
+				args: ["rando"],
+			},
+			{
+				guard: guardFactory({ enabled: true, name: "not-rando" }),
+				method: "isEnabled",
+				args: ["not-rando"],
+			},
+		] as const)("does not emit a new value when RxGdprGuard#enabled doesn't change: %p", async ({ guard, method, args }) => {
+			expect.hasAssertions();
+			const wrapped = RxGdprGuard.wrap(guard);
+
+			await withinCounterState(wrapped.enabled$, async state => {
+				await firstValueFrom(wrapped.enabled$);
+
+				// @ts-expect-error TS2556 I know what I'm doing with the args
+				wrapped[method](...args);
+
+				await firstValueFrom(wrapped.enabled$);
+
+				expect(state.counter).toBe(1);
+			});
+		});
+	});
+
+	describe("#raw", () => {
+		it("emits the initial value of RxGdprGuard#raw() as its first value", async () => {
+			expect.hasAssertions();
+			const guard = guardFactory();
+			const wrapped = RxGdprGuard.wrap(guard);
+
+			await withinCounterState(wrapped.raw$, async state => {
+				const isEnabled = await firstValueFrom(wrapped.raw$);
+
+				expect(isEnabled).toStrictEqual(wrapped.raw());
+				expect(state.counter).toBe(1);
+			});
+		});
+
+		it("stop emitting values after RxGdprGuard#unwrap() has been called", async () => {
+			expect.hasAssertions();
+			const guard = guardFactory();
+			const wrapped = RxGdprGuard.wrap(guard);
+
+			await withinCounterState(wrapped.raw$, async state => {
+				await firstValueFrom(wrapped.raw$);
+
+				wrapped.unwrap();
+
+				wrapped.toggle();
+
+				await expect(() => firstValueFrom(wrapped.raw$)).rejects.toThrow(EmptyError);
+				expect(state.counter).toBe(1);
+			});
+		});
+
+		//TODO: Customize the test cases below
+
+		it.each([
+			{
+				guard: guardFactory({ enabled: false }),
+				method: "enable",
+				args: [],
+			},
+			{
+				guard: guardFactory({ enabled: true }),
+				method: "disable",
+				args: [],
+			},
+			{
+				guard: guardFactory({ enabled: false }),
+				method: "toggle",
+				args: [],
+			},
+			{
+				guard: guardFactory({ enabled: true }),
+				method: "toggle",
+				args: [],
+			},
+			{
+				guard: guardFactory({ enabled: false }),
+				method: "makeRequired",
+				args: [],
+			},
+			{
+				guard: guardFactory({ enabled: false, storage: GdprStorage.Cookie }),
+				method: "enableForStorage",
+				args: [GdprStorage.Cookie],
+			},
+			{
+				guard: guardFactory({ enabled: true, storage: GdprStorage.Cookie }),
+				method: "disableForStorage",
+				args: [GdprStorage.Cookie],
+			},
+			{
+				guard: guardFactory({ enabled: false, storage: GdprStorage.Cookie }),
+				method: "toggleForStorage",
+				args: [GdprStorage.Cookie],
+			},
+			{
+				guard: guardFactory({ enabled: true, storage: GdprStorage.Cookie }),
+				method: "toggleForStorage",
+				args: [GdprStorage.Cookie],
+			},
+		] as const)("emits a new value when RxGdprGuard#raw() changes: %p", async ({ guard, method, args }) => {
+			expect.hasAssertions();
+			const wrapped = RxGdprGuard.wrap(guard);
+
+			await withinCounterState(wrapped.raw$, async state => {
+				await firstValueFrom(wrapped.raw$);
+
+				// @ts-expect-error TS2556 I know what I'm doing with the args
+				wrapped[method](...args);
+
+				const isEnabled = await firstValueFrom(wrapped.raw$);
+
+				expect(isEnabled).toStrictEqual(wrapped.raw());
+				expect(state.counter).toBe(2);
+			});
+		});
+
+		it.each([
+			{
+				guard: guardFactory({ enabled: false }),
+				method: "disable",
+				args: [],
+			},
+			{
+				guard: guardFactory({ enabled: true }),
+				method: "enable",
+				args: [],
+			},
+			{
+				guard: guardFactory({ enabled: false }),
+				method: "raw",
+				args: [],
+			},
+			{
+				guard: guardFactory({ enabled: true }),
+				method: "raw",
+				args: [],
+			},
+			{
+				guard: guardFactory({ enabled: false, storage: GdprStorage.FileSystem }),
+				method: "disableForStorage",
+				args: [GdprStorage.FileSystem],
+			},
+			{
+				guard: guardFactory({ enabled: true, storage: GdprStorage.ServerStorage }),
+				method: "enableForStorage",
+				args: [GdprStorage.ServerStorage],
+			},
+			{
+				guard: guardFactory({ enabled: true, name: "not-rando" }),
+				method: "isEnabled",
+				args: ["rando"],
+			},
+			{
+				guard: guardFactory({ enabled: true, name: "not-rando" }),
+				method: "isEnabled",
+				args: ["not-rando"],
+			},
+		] as const)("does not emit a new value when RxGdprGuard#raw() doesn't change: %p", async ({ guard, method, args }) => {
+			expect.hasAssertions();
+			const wrapped = RxGdprGuard.wrap(guard);
+
+			await withinCounterState(wrapped.raw$, async state => {
+				await firstValueFrom(wrapped.raw$);
+
+				// @ts-expect-error TS2556 I know what I'm doing with the args
+				wrapped[method](...args);
+
+				await firstValueFrom(wrapped.raw$);
+
+				expect(state.counter).toBe(1);
+			});
+		});
 	});
 });

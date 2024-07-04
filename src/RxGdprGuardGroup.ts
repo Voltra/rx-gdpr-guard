@@ -26,23 +26,36 @@ import { deepEquals } from "./utils";
  */
 export class RxGdprGuardGroup
 	extends GdprGuardGroup
-	implements RxWrapper<GdprGuardGroupRaw, GdprGuardGroup>
+	implements RxWrapper<GdprGuardGroupRaw, GdprGuardGroup, RxGdprGuardGroup>
 {
+
 	/**
 	 * An observable that emits the new result of {@link GdprGuardGroup#raw} as it changes
 	 * @warning It only emits (deeply) distinct values
+	 * @warning It emits the initial state of the group, if you don't want that: pipe a skip(1)
 	 */
 	public readonly raw$: Observable<GdprGuardGroupRaw>;
+
 	/**
 	 * An observable that emits the new value of {@link GdprGuardGroup#enabled} as it changes
 	 * @warning It only emits distinct values
+	 * @warning It emits the initial state of the group, if you don't want that: pipe a skip(1)
 	 */
 	public readonly enabled$: Observable<boolean>;
+
 	/**
 	 * An observable that emits the new value of {@link GdprGuardGroup#required} as it changes
 	 * @warning It only emits distinct values
+	 * @warning It emits the initial state of the group, if you don't want that: pipe a skip(1)
 	 */
 	public readonly required$: Observable<boolean>;
+
+	/**
+	 * An observable that emits this instance of {@link RxGdprGuardGroup} every time {@link GdprGuardGroup#raw} changes
+	 * @warning It always emits the same instance
+	 * @warning It emits the initial state of the group, if you don't want that: pipe a skip(1)
+	 */
+	public readonly $: Observable<RxGdprGuardGroup>;
 	readonly #raw$ = new ReplaySubject<GdprGuardGroupRaw>(1);
 	readonly #enabled$ = new BehaviorSubject(false);
 	readonly #required$ = new BehaviorSubject(false);
@@ -93,6 +106,10 @@ export class RxGdprGuardGroup
 			takeUntil(this.#sentinel$),
 			distinctUntilChanged(),
 		);
+
+		this.$ = this.raw$.pipe(
+			map(() => this),
+		);
 	}
 
 	/**
@@ -128,25 +145,47 @@ export class RxGdprGuardGroup
 	}
 
 	public lens<DerivedState>(
+		derive: (group: RxGdprGuardGroup) => DerivedState,
+	): Observable<DerivedState> {
+		return this.$.pipe(takeUntil(this.#sentinel$), map(derive));
+	}
+
+	public map<T>(mapper: (group: RxGdprGuardGroup) => T): Observable<T> {
+		return this.lens(mapper);
+	}
+
+	public lensThrough<DerivedState>(
+		derive: (group: RxGdprGuardGroup) => ObservableInput<DerivedState>,
+	): Observable<DerivedState> {
+		return this.$.pipe(takeUntil(this.#sentinel$), mergeMap(derive));
+	}
+
+	public flatMap<T>(
+		mapper: (group: RxGdprGuardGroup) => ObservableInput<T>,
+	): Observable<T> {
+		return this.lensThrough(mapper);
+	}
+
+	public lensRaw<DerivedState>(
 		derive: (groupRaw: GdprGuardGroupRaw) => DerivedState,
 	): Observable<DerivedState> {
 		return this.raw$.pipe(takeUntil(this.#sentinel$), map(derive));
 	}
 
-	public map<T>(mapper: (groupRaw: GdprGuardGroupRaw) => T): Observable<T> {
-		return this.lens<T>(mapper);
+	public mapRaw<T>(mapper: (groupRaw: GdprGuardGroupRaw) => T): Observable<T> {
+		return this.lensRaw<T>(mapper);
 	}
 
-	public lensThrough<DerivedState>(
+	public lensRawThrough<DerivedState>(
 		derive: (groupRaw: GdprGuardGroupRaw) => ObservableInput<DerivedState>,
 	): Observable<DerivedState> {
 		return this.raw$.pipe(takeUntil(this.#sentinel$), mergeMap(derive));
 	}
 
-	public flatMap<T>(
+	public flatMapRaw<T>(
 		mapper: (groupRaw: GdprGuardGroupRaw) => ObservableInput<T>,
 	): Observable<T> {
-		return this.lensThrough(mapper);
+		return this.lensRawThrough(mapper);
 	}
 
 	public unwrap(): GdprGuardGroup {
