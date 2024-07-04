@@ -25,7 +25,7 @@ const extractPublicApiState = (manager: GdprManager) => {
 	} as const;
 };
 
-describe("RxGdprManager", () => {
+describe("rxGdprManager", () => {
 	const decorateTests = (factoryName: "decorate" | "wrap") => {
 		it("decorates the underlying manager's groups with RxGdprGuardGroup", () => {
 			expect.hasAssertions();

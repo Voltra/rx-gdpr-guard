@@ -51,7 +51,7 @@ const withinCounterState = async (
 	return state;
 };
 
-describe("RxGdprGuard", () => {
+describe("rxGdprGuard", () => {
 	const expectToBeInSync = (guard: GdprGuard, decorated: RxGdprGuard) => {
 		expect(decorated.name).toStrictEqual(guard.name);
 		expect(decorated.description).toStrictEqual(guard.description);
@@ -943,7 +943,7 @@ describe("RxGdprGuard", () => {
 		);
 	});
 
-	describe("#raw", () => {
+	describe("#raw$", () => {
 		it("emits the initial value of RxGdprGuard#raw() as its first value", async () => {
 			expect.hasAssertions();
 			const guard = guardFactory();
