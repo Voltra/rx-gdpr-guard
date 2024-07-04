@@ -86,9 +86,7 @@ export class RxGdprGuard
 			distinctUntilChanged(deepEquals),
 		);
 
-		this.$ = this.raw$.pipe(
-			map(() => this),
-		);
+		this.$ = this.raw$.pipe(map(() => this));
 
 		this.syncWithUnderlying();
 	}

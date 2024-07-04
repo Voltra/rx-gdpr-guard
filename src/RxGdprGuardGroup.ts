@@ -107,9 +107,7 @@ export class RxGdprGuardGroup
 			distinctUntilChanged(),
 		);
 
-		this.$ = this.raw$.pipe(
-			map(() => this),
-		);
+		this.$ = this.raw$.pipe(map(() => this));
 	}
 
 	/**
@@ -172,7 +170,9 @@ export class RxGdprGuardGroup
 		return this.raw$.pipe(takeUntil(this.#sentinel$), map(derive));
 	}
 
-	public mapRaw<T>(mapper: (groupRaw: GdprGuardGroupRaw) => T): Observable<T> {
+	public mapRaw<T>(
+		mapper: (groupRaw: GdprGuardGroupRaw) => T,
+	): Observable<T> {
 		return this.lensRaw<T>(mapper);
 	}
 

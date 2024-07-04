@@ -9,7 +9,7 @@ import type { Observable, ObservableInput } from "rxjs";
 export interface RxWrapper<
 	Raw extends GdprGuardRaw | GdprManagerRaw,
 	Guard extends GdprGuard | GdprManager,
-	Wrapped
+	Wrapped,
 > {
 	readonly raw$: Observable<Raw>;
 
@@ -19,7 +19,9 @@ export interface RxWrapper<
 	 * Create a lens into the guard's state
 	 * @param derive - The function used to derive state from the guard's state
 	 */
-	lens<DerivedState>(derive: (guard: Wrapped) => DerivedState): Observable<DerivedState>;
+	lens<DerivedState>(
+		derive: (guard: Wrapped) => DerivedState,
+	): Observable<DerivedState>;
 
 	/**
 	 * Map into an observable from the guard's state
