@@ -86,6 +86,7 @@ describe("rxGdprGuard", () => {
 	describe(".wrap(guard)", () => {
 		decorateTests("wrap");
 	});
+
 	describe(".decorate(guard)", () => {
 		decorateTests("decorate");
 	});
@@ -525,22 +526,22 @@ describe("rxGdprGuard", () => {
 			},
 		);
 
-		//TODO: Enable this test case once the following issues have been fixed in gdpr-guard
-		// https://github.com/Voltra/gdpr-guard/blob/413b053321b3eea940a1328ccfd025841d67926d/src/GdprGuard.ts#L161
-		// https://github.com/Voltra/gdpr-guard/blob/413b053321b3eea940a1328ccfd025841d67926d/src/GdprStorage.ts#L45
-		/*it.each(storageCases)("enables if storage is GdprStorage.All and the guard wasn't already enabled", storage => {
-			const guard = guardFactory({
-				storage,
-				enabled: false,
-			});
+		/*it.each(storageCases)(
+			"enables if storage is GdprStorage.All and the guard wasn't already enabled",
+			storage => {
+				const guard = guardFactory({
+					storage,
+					enabled: false,
+				});
 
-			const decorated = RxGdprGuard.decorate(guard);
+				const decorated = RxGdprGuard.decorate(guard);
 
-			decorated.enableForStorage(GdprStorage.All);
+				decorated.enableForStorage(GdprStorage.All);
 
-			expect(decorated.enabled).toBeTruthy();
-			expectInvariantsToBeMaintained(guard, decorated);
-		});*/
+				expect(decorated.enabled).toBeTruthy();
+				expectInvariantsToBeMaintained(guard, decorated);
+			},
+		);*/
 	});
 
 	describe("#disableForStorage(storage)", () => {
@@ -1122,4 +1123,12 @@ describe("rxGdprGuard", () => {
 			},
 		);
 	});
+
+	describe.todo("#required$");
+	describe.todo("#$");
+	describe.todo("#lens(derive)");
+	describe.todo("#lensThrough(derive)");
+	describe.todo("#lensRaw(derive)");
+	describe.todo("#lensRawThrough(derive)");
+	describe.todo("#unwrap()");
 });

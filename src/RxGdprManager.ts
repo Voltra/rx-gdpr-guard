@@ -65,8 +65,11 @@ export class RxGdprManager
 	public readonly $: Observable<RxGdprManager>;
 
 	readonly #bannerWasShown$ = new BehaviorSubject(false);
+
 	readonly #enabled$ = new BehaviorSubject(true);
+
 	readonly #required$ = new BehaviorSubject(false);
+
 	readonly #raw$ = new ReplaySubject<GdprManagerRaw>(1);
 
 	/**

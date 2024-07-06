@@ -35,6 +35,8 @@ module.exports = tseslint.config(
 				"allowObjectStart": true,
 				"allowArrayStart": true,
 			}],
+			"lines-between-class-members": ["error", "always"],
+			"no-trailing-spaces": "error",
 			"quotes": "error",
 			"@typescript-eslint/no-unnecessary-qualifier": "error",
 			"@typescript-eslint/prefer-as-const": "error",

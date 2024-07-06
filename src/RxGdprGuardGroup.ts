@@ -56,8 +56,11 @@ export class RxGdprGuardGroup
 	 * @warning It emits the initial state of the group, if you don't want that: pipe a skip(1)
 	 */
 	public readonly $: Observable<RxGdprGuardGroup>;
+
 	readonly #raw$ = new ReplaySubject<GdprGuardGroupRaw>(1);
+
 	readonly #enabled$ = new BehaviorSubject(false);
+
 	readonly #required$ = new BehaviorSubject(false);
 
 	/**
