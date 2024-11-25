@@ -90,6 +90,28 @@ describe("rxGdprGuard", () => {
 
 			expect(result).toBeInstanceOf(Observable);
 		});
+
+		it.each(lensCases<GdprGuard>())(
+			"always resolves to the mapped value: %p",
+			async mapper => {
+				expect.hasAssertions();
+
+				const guard = guardFactory({ enabled: true });
+				const wrapped = RxGdprGuard.wrap(guard);
+
+				const obs = wrapped[methodName](mapper);
+				const r0 = await firstValueFrom(obs);
+				expect(r0).toStrictEqual(mapper(wrapped));
+
+				wrapped.toggle();
+				const r1 = await firstValueFrom(obs);
+				expect(r1).toStrictEqual(mapper(wrapped));
+
+				wrapped.enable();
+				const r2 = await firstValueFrom(obs);
+				expect(r2).toStrictEqual(mapper(wrapped));
+			},
+		);
 	};
 
 	const lensThroughTests = (methodName: "lensThrough" | "flatMap") => {
