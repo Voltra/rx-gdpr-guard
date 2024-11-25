@@ -1,0 +1,6 @@
+{
+	"*.js": [
+		"prettier --ignore-path .gitignore --write",
+		"eslint --fix"
+	]
+}

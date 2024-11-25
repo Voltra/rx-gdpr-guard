@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+
 const path = require("path");
 const TerserPlugin = require("terser-webpack-plugin");
 const WebpackBarPlugin = require("webpackbar");
@@ -50,7 +52,8 @@ module.exports = (env, argv) => {
 			libraryTarget: "umd",
 			library: "rxGdprGuard",
 			umdNamedDefine: true,
-			globalObject: "typeof self !== 'undefined' ? self : typeof window !== 'undefined' ? window : this",
+			globalObject:
+				"typeof self !== 'undefined' ? self : typeof window !== 'undefined' ? window : this",
 		},
 
 		resolve: {
@@ -66,17 +69,12 @@ module.exports = (env, argv) => {
 			rules: [
 				{
 					test: /\.js$/,
-					use: [
-						"babel-loader",
-					],
+					use: ["babel-loader"],
 					exclude: /node_modules/,
 				},
 				{
 					test: /\.ts$/,
-					use: [
-						"babel-loader",
-						"ts-loader",
-					],
+					use: ["babel-loader", "ts-loader"],
 					exclude: /node_modules/,
 				},
 			],
@@ -91,3 +89,5 @@ module.exports = (env, argv) => {
 
 	return config;
 };
+
+/* eslint-enable @typescript-eslint/no-require-imports */

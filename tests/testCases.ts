@@ -2,6 +2,8 @@ import { wrapTestCases } from "./utils";
 import { GdprStorage } from "gdpr-guard";
 import { ObservableInput, of } from "rxjs";
 
+/* eslint-disable @typescript-eslint/no-unnecessary-type-parameters */
+
 export const assignableStorageCases = wrapTestCases([
 	GdprStorage.None,
 	GdprStorage.ServerStorage,
@@ -35,3 +37,6 @@ export const lensThroughCases = <T>() =>
 		() => of(420, 69),
 		() => Promise.resolve(69),
 	] as ((guard: T) => ObservableInput<unknown>)[]);
+
+
+/* eslint-enable @typescript-eslint/no-unnecessary-type-parameters */

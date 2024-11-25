@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+
 const eslint = require("@eslint/js");
 const eslintPrettier = require("eslint-config-prettier");
 const vitest = require("eslint-plugin-vitest");
@@ -6,12 +8,7 @@ const tseslint = require("typescript-eslint");
 
 module.exports = tseslint.config(
 	{
-		files: [
-			"src/**/*.ts",
-			"tests/**/*.ts",
-			"*.config.js",
-			"*.config.ts",
-		],
+		files: ["src/**/*.ts", "tests/**/*.ts", "*.config.js", "*.config.ts"],
 		plugins: {
 			"@stylistic/ts": stylisticTs,
 		},
@@ -30,14 +27,17 @@ module.exports = tseslint.config(
 			},
 		},
 		rules: {
-			"lines-around-comment": ["error", {
-				"beforeBlockComment": true,
-				"allowObjectStart": true,
-				"allowArrayStart": true,
-			}],
+			"lines-around-comment": [
+				"error",
+				{
+					beforeBlockComment: true,
+					allowObjectStart: true,
+					allowArrayStart: true,
+				},
+			],
 			"lines-between-class-members": ["error", "always"],
 			"no-trailing-spaces": "error",
-			"quotes": "error",
+			quotes: "error",
 			"@typescript-eslint/no-unnecessary-qualifier": "error",
 			"@typescript-eslint/prefer-as-const": "error",
 		},
@@ -60,13 +60,19 @@ module.exports = tseslint.config(
 			/*"vitest/assertion-type": ["error", {
 				type: "jest",
 			}],*/
-			"vitest/consistent-test-it": ["error", {
-				fn: "it",
-			}],
-			"vitest/expect-expect": ["error", {
-				assertFunctionNames: ["expect*", "*Tests"],
-				additionalTestBlockFunctions: ["describe", "*Tests"],
-			}],
+			"vitest/consistent-test-it": [
+				"error",
+				{
+					fn: "it",
+				},
+			],
+			"vitest/expect-expect": [
+				"error",
+				{
+					assertFunctionNames: ["expect*", "*Tests"],
+					additionalTestBlockFunctions: ["describe", "*Tests"],
+				},
+			],
 			"vitest/no-alias-methods": "error",
 			"vitest/no-commented-out-tests": "off",
 			"vitest/no-conditional-expect": "error",
@@ -90,9 +96,12 @@ module.exports = tseslint.config(
 			"vitest/prefer-to-have-length": "error",
 			"vitest/prefer-todo": "error",
 			"vitest/valid-describe-callback": "error",
-			"vitest/valid-expect": ["error", {
-				alwaysAwait: true,
-			}],
+			"vitest/valid-expect": [
+				"error",
+				{
+					alwaysAwait: true,
+				},
+			],
 		},
 		settings: {
 			vitest: {
@@ -101,3 +110,5 @@ module.exports = tseslint.config(
 		},
 	},
 );
+
+/* eslint-enable @typescript-eslint/no-require-imports */
