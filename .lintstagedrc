@@ -2,5 +2,9 @@
 	"*.js": [
 		"prettier --ignore-path .gitignore --write",
 		"eslint --fix"
+	],
+	"*.ts": [
+		"prettier --ignore-path .gitignore --write",
+		"eslint --fix"
 	]
 }

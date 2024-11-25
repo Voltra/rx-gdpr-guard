@@ -38,5 +38,4 @@ export const lensThroughCases = <T>() =>
 		() => Promise.resolve(69),
 	] as ((guard: T) => ObservableInput<unknown>)[]);
 
-
 /* eslint-enable @typescript-eslint/no-unnecessary-type-parameters */
