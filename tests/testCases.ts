@@ -21,15 +21,17 @@ export const guardStorageCases = wrapTestCases([
 	GdprStorage.FileSystem,
 ]);
 
-export const lensCases = <T>() => wrapTestCases([
-	(guard: T) => guard,
-	(guard: T) => [guard, guard],
-	() => [1, 6],
-	() => 420,
-] as ((guard: T) => unknown)[]);
+export const lensCases = <T>() =>
+	wrapTestCases([
+		(guard: T) => guard,
+		(guard: T) => [guard, guard],
+		() => [1, 6],
+		() => 420,
+	] as ((guard: T) => unknown)[]);
 
-export const lensThroughCases = <T>() => wrapTestCases([
-	(guard: T) => [guard, guard],
-	() => of(420, 69),
-	() => Promise.resolve(69),
-] as ((guard: T) => ObservableInput<unknown>)[]);
+export const lensThroughCases = <T>() =>
+	wrapTestCases([
+		(guard: T) => [guard, guard],
+		() => of(420, 69),
+		() => Promise.resolve(69),
+	] as ((guard: T) => ObservableInput<unknown>)[]);

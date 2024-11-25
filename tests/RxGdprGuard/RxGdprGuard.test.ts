@@ -17,18 +17,12 @@ import {
 } from "rxjs";
 
 const guardFactory = ({
-	                      name = "my-guard",
-	                      description = "My guard description",
-	                      storage = GdprStorage.ServerStorage,
-	                      required = false,
-	                      enabled = false,
-                      } = {}): GdprGuard => makeGuard(
-	name,
-	description,
-	storage,
-	required,
-	enabled,
-);
+	name = "my-guard",
+	description = "My guard description",
+	storage = GdprStorage.ServerStorage,
+	required = false,
+	enabled = false,
+} = {}): GdprGuard => makeGuard(name, description, storage, required, enabled);
 
 const index = () => map((_, i) => i);
 
@@ -126,7 +120,9 @@ describe("rxGdprGuard", () => {
 		);
 	};
 
-	const lensRawThroughTests = (methodName: "lensRawThrough" | "flatMapRaw") => {
+	const lensRawThroughTests = (
+		methodName: "lensRawThrough" | "flatMapRaw",
+	) => {
 		it.each(lensThroughCases<GdprGuardRaw>())(
 			"returns an Observable: %p",
 			mapper => {
@@ -330,29 +326,26 @@ describe("rxGdprGuard", () => {
 			},
 		);
 
-		it(
-			"returns the value of guard.enabled if name is this guard's name",
-			() => {
-				const guard = guardFactory({
-					enabled: false,
-				});
-				const decorated = RxGdprGuard.decorate(guard);
+		it("returns the value of guard.enabled if name is this guard's name", () => {
+			const guard = guardFactory({
+				enabled: false,
+			});
+			const decorated = RxGdprGuard.decorate(guard);
 
-				expect(decorated.isEnabled(guard.name)).toBeFalsy();
-				expect(decorated.isEnabled(guard.name)).toStrictEqual(
-					guard.enabled,
-				);
-				expectInvariantsToBeMaintained(guard, decorated);
+			expect(decorated.isEnabled(guard.name)).toBeFalsy();
+			expect(decorated.isEnabled(guard.name)).toStrictEqual(
+				guard.enabled,
+			);
+			expectInvariantsToBeMaintained(guard, decorated);
 
-				decorated.enable();
+			decorated.enable();
 
-				expect(decorated.isEnabled(guard.name)).toBeTruthy();
-				expect(decorated.isEnabled(guard.name)).toStrictEqual(
-					guard.enabled,
-				);
-				expectInvariantsToBeMaintained(guard, decorated);
-			},
-		);
+			expect(decorated.isEnabled(guard.name)).toBeTruthy();
+			expect(decorated.isEnabled(guard.name)).toStrictEqual(
+				guard.enabled,
+			);
+			expectInvariantsToBeMaintained(guard, decorated);
+		});
 	});
 
 	describe("#toggle()", () => {
@@ -406,53 +399,44 @@ describe("rxGdprGuard", () => {
 			expectInvariantsToBeMaintained(guard, decorated);
 		});
 
-		it(
-			"disables the underlying guard if it was enabled but not required",
-			() => {
-				const guard = guardFactory({
-					enabled: true,
-					required: false,
-				});
-				const decorated = RxGdprGuard.decorate(guard);
+		it("disables the underlying guard if it was enabled but not required", () => {
+			const guard = guardFactory({
+				enabled: true,
+				required: false,
+			});
+			const decorated = RxGdprGuard.decorate(guard);
 
-				decorated.toggle();
+			decorated.toggle();
 
-				expect(guard.enabled).toBeFalsy();
-				expectInvariantsToBeMaintained(guard, decorated);
-			},
-		);
+			expect(guard.enabled).toBeFalsy();
+			expectInvariantsToBeMaintained(guard, decorated);
+		});
 
-		it(
-			"does not disable the guard if it was enabled but not required",
-			() => {
-				const guard = guardFactory({
-					enabled: true,
-					required: true,
-				});
-				const decorated = RxGdprGuard.decorate(guard);
+		it("does not disable the guard if it was enabled but not required", () => {
+			const guard = guardFactory({
+				enabled: true,
+				required: true,
+			});
+			const decorated = RxGdprGuard.decorate(guard);
 
-				decorated.toggle();
+			decorated.toggle();
 
-				expect(decorated.enabled).toBeTruthy();
-				expectInvariantsToBeMaintained(guard, decorated);
-			},
-		);
+			expect(decorated.enabled).toBeTruthy();
+			expectInvariantsToBeMaintained(guard, decorated);
+		});
 
-		it(
-			"does not disable the underlying guard if it was enabled but not required",
-			() => {
-				const guard = guardFactory({
-					enabled: true,
-					required: true,
-				});
-				const decorated = RxGdprGuard.decorate(guard);
+		it("does not disable the underlying guard if it was enabled but not required", () => {
+			const guard = guardFactory({
+				enabled: true,
+				required: true,
+			});
+			const decorated = RxGdprGuard.decorate(guard);
 
-				decorated.toggle();
+			decorated.toggle();
 
-				expect(guard.enabled).toBeTruthy();
-				expectInvariantsToBeMaintained(guard, decorated);
-			},
-		);
+			expect(guard.enabled).toBeTruthy();
+			expectInvariantsToBeMaintained(guard, decorated);
+		});
 	});
 
 	describe("#makeRequired()", () => {
@@ -524,24 +508,21 @@ describe("rxGdprGuard", () => {
 	});
 
 	describe("#enableForStorage(storage)", () => {
-		it(
-			"calls the underlying guard's GdprGuard#enableForStorage(storage)",
-			() => {
-				const guard = guardFactory({
-					enabled: false,
-					required: false,
-				});
-				const decorated = RxGdprGuard.decorate(guard);
-				const spy = vi.spyOn(guard, "enableForStorage");
-				const storage = GdprStorage.FileSystem;
+		it("calls the underlying guard's GdprGuard#enableForStorage(storage)", () => {
+			const guard = guardFactory({
+				enabled: false,
+				required: false,
+			});
+			const decorated = RxGdprGuard.decorate(guard);
+			const spy = vi.spyOn(guard, "enableForStorage");
+			const storage = GdprStorage.FileSystem;
 
-				decorated.enableForStorage(storage);
+			decorated.enableForStorage(storage);
 
-				expect(spy).toHaveBeenCalledOnce();
-				expect(spy).toHaveBeenCalledWith(storage);
-				expectInvariantsToBeMaintained(guard, decorated);
-			},
-		);
+			expect(spy).toHaveBeenCalledOnce();
+			expect(spy).toHaveBeenCalledWith(storage);
+			expectInvariantsToBeMaintained(guard, decorated);
+		});
 
 		it.each(assignableStorageCases)(
 			"does nothing if storage is different from the guard's storage, and is not GdprStorage.All: %p",
@@ -624,24 +605,21 @@ describe("rxGdprGuard", () => {
 	});
 
 	describe("#disableForStorage(storage)", () => {
-		it(
-			"calls the underlying guard's GdprGuard#disableForStorage(storage)",
-			() => {
-				const guard = guardFactory({
-					enabled: false,
-					required: false,
-				});
-				const decorated = RxGdprGuard.decorate(guard);
-				const spy = vi.spyOn(guard, "disableForStorage");
-				const storage = GdprStorage.FileSystem;
+		it("calls the underlying guard's GdprGuard#disableForStorage(storage)", () => {
+			const guard = guardFactory({
+				enabled: false,
+				required: false,
+			});
+			const decorated = RxGdprGuard.decorate(guard);
+			const spy = vi.spyOn(guard, "disableForStorage");
+			const storage = GdprStorage.FileSystem;
 
-				decorated.disableForStorage(storage);
+			decorated.disableForStorage(storage);
 
-				expect(spy).toHaveBeenCalledOnce();
-				expect(spy).toHaveBeenCalledWith(storage);
-				expectInvariantsToBeMaintained(guard, decorated);
-			},
-		);
+			expect(spy).toHaveBeenCalledOnce();
+			expect(spy).toHaveBeenCalledWith(storage);
+			expectInvariantsToBeMaintained(guard, decorated);
+		});
 
 		it.each(assignableStorageCases)(
 			"does nothing if storage is different from the guard's storage, and is not GdprStorage.All: %p",
@@ -724,24 +702,21 @@ describe("rxGdprGuard", () => {
 	});
 
 	describe("#toggleForStorage(storage)", () => {
-		it(
-			"calls the underlying guard's GdprGuard#toggleForStorage(storage)",
-			() => {
-				const guard = guardFactory({
-					enabled: false,
-					required: false,
-				});
-				const decorated = RxGdprGuard.decorate(guard);
-				const spy = vi.spyOn(guard, "toggleForStorage");
-				const storage = GdprStorage.FileSystem;
+		it("calls the underlying guard's GdprGuard#toggleForStorage(storage)", () => {
+			const guard = guardFactory({
+				enabled: false,
+				required: false,
+			});
+			const decorated = RxGdprGuard.decorate(guard);
+			const spy = vi.spyOn(guard, "toggleForStorage");
+			const storage = GdprStorage.FileSystem;
 
-				decorated.toggleForStorage(storage);
+			decorated.toggleForStorage(storage);
 
-				expect(spy).toHaveBeenCalledOnce();
-				expect(spy).toHaveBeenCalledWith(storage);
-				expectInvariantsToBeMaintained(guard, decorated);
-			},
-		);
+			expect(spy).toHaveBeenCalledOnce();
+			expect(spy).toHaveBeenCalledWith(storage);
+			expectInvariantsToBeMaintained(guard, decorated);
+		});
 
 		it.each(assignableStorageCases)(
 			"does nothing if storage is different from the guard's storage, and is not GdprStorage.All: %p",
@@ -881,43 +856,37 @@ describe("rxGdprGuard", () => {
 			expect(wrapped.enabled$).toBeInstanceOf(Observable);
 		});
 
-		it(
-			"emits the initial value of RxGdprGuard#enabled as its first value",
-			async () => {
-				expect.hasAssertions();
-				const guard = guardFactory();
-				const wrapped = RxGdprGuard.wrap(guard);
+		it("emits the initial value of RxGdprGuard#enabled as its first value", async () => {
+			expect.hasAssertions();
+			const guard = guardFactory();
+			const wrapped = RxGdprGuard.wrap(guard);
 
-				await withinCounterState(wrapped.enabled$, async state => {
-					const isEnabled = await firstValueFrom(wrapped.enabled$);
+			await withinCounterState(wrapped.enabled$, async state => {
+				const isEnabled = await firstValueFrom(wrapped.enabled$);
 
-					expect(isEnabled).toStrictEqual(wrapped.enabled);
-					expect(state.counter).toBe(1);
-				});
-			},
-		);
+				expect(isEnabled).toStrictEqual(wrapped.enabled);
+				expect(state.counter).toBe(1);
+			});
+		});
 
-		it(
-			"stops emitting values after RxGdprGuard#unwrap() has been called",
-			async () => {
-				expect.hasAssertions();
-				const guard = guardFactory();
-				const wrapped = RxGdprGuard.wrap(guard);
+		it("stops emitting values after RxGdprGuard#unwrap() has been called", async () => {
+			expect.hasAssertions();
+			const guard = guardFactory();
+			const wrapped = RxGdprGuard.wrap(guard);
 
-				await withinCounterState(wrapped.enabled$, async state => {
-					await firstValueFrom(wrapped.enabled$);
+			await withinCounterState(wrapped.enabled$, async state => {
+				await firstValueFrom(wrapped.enabled$);
 
-					wrapped.unwrap();
+				wrapped.unwrap();
 
-					wrapped.toggle();
+				wrapped.toggle();
 
-					await expect(() =>
-						firstValueFrom(wrapped.enabled$),
-					).rejects.toThrow(EmptyError);
-					expect(state.counter).toBe(1);
-				});
-			},
-		);
+				await expect(() =>
+					firstValueFrom(wrapped.enabled$),
+				).rejects.toThrow(EmptyError);
+				expect(state.counter).toBe(1);
+			});
+		});
 
 		it.each([
 			{
@@ -1077,43 +1046,37 @@ describe("rxGdprGuard", () => {
 			expect(wrapped.raw$).toBeInstanceOf(Observable);
 		});
 
-		it(
-			"emits the initial value of RxGdprGuard#raw() as its first value",
-			async () => {
-				expect.hasAssertions();
-				const guard = guardFactory();
-				const wrapped = RxGdprGuard.wrap(guard);
+		it("emits the initial value of RxGdprGuard#raw() as its first value", async () => {
+			expect.hasAssertions();
+			const guard = guardFactory();
+			const wrapped = RxGdprGuard.wrap(guard);
 
-				await withinCounterState(wrapped.raw$, async state => {
-					const isEnabled = await firstValueFrom(wrapped.raw$);
+			await withinCounterState(wrapped.raw$, async state => {
+				const isEnabled = await firstValueFrom(wrapped.raw$);
 
-					expect(isEnabled).toStrictEqual(wrapped.raw());
-					expect(state.counter).toBe(1);
-				});
-			},
-		);
+				expect(isEnabled).toStrictEqual(wrapped.raw());
+				expect(state.counter).toBe(1);
+			});
+		});
 
-		it(
-			"stops emitting values after RxGdprGuard#unwrap() has been called",
-			async () => {
-				expect.hasAssertions();
-				const guard = guardFactory();
-				const wrapped = RxGdprGuard.wrap(guard);
+		it("stops emitting values after RxGdprGuard#unwrap() has been called", async () => {
+			expect.hasAssertions();
+			const guard = guardFactory();
+			const wrapped = RxGdprGuard.wrap(guard);
 
-				await withinCounterState(wrapped.raw$, async state => {
-					await firstValueFrom(wrapped.raw$);
+			await withinCounterState(wrapped.raw$, async state => {
+				await firstValueFrom(wrapped.raw$);
 
-					wrapped.unwrap();
+				wrapped.unwrap();
 
-					wrapped.toggle();
+				wrapped.toggle();
 
-					await expect(() =>
-						firstValueFrom(wrapped.raw$),
-					).rejects.toThrow(EmptyError);
-					expect(state.counter).toBe(1);
-				});
-			},
-		);
+				await expect(() =>
+					firstValueFrom(wrapped.raw$),
+				).rejects.toThrow(EmptyError);
+				expect(state.counter).toBe(1);
+			});
+		});
 
 		it.each([
 			{
@@ -1268,63 +1231,54 @@ describe("rxGdprGuard", () => {
 			expect(wrapped.required$).toBeInstanceOf(Observable);
 		});
 
-		it(
-			"emits the initial value of RxGdprGuard#required as its first value",
-			async () => {
-				expect.hasAssertions();
-				const guard = guardFactory();
-				const wrapped = RxGdprGuard.wrap(guard);
+		it("emits the initial value of RxGdprGuard#required as its first value", async () => {
+			expect.hasAssertions();
+			const guard = guardFactory();
+			const wrapped = RxGdprGuard.wrap(guard);
 
-				await withinCounterState(wrapped.required$, async state => {
-					const isEnabled = await firstValueFrom(wrapped.required$);
+			await withinCounterState(wrapped.required$, async state => {
+				const isEnabled = await firstValueFrom(wrapped.required$);
 
-					expect(isEnabled).toStrictEqual(wrapped.required);
-					expect(state.counter).toBe(1);
-				});
-			},
-		);
+				expect(isEnabled).toStrictEqual(wrapped.required);
+				expect(state.counter).toBe(1);
+			});
+		});
 
-		it(
-			"stops emitting values after RxGdprGuard#unwrap() has been called",
-			async () => {
-				expect.hasAssertions();
-				const guard = guardFactory();
-				const wrapped = RxGdprGuard.wrap(guard);
+		it("stops emitting values after RxGdprGuard#unwrap() has been called", async () => {
+			expect.hasAssertions();
+			const guard = guardFactory();
+			const wrapped = RxGdprGuard.wrap(guard);
 
-				await withinCounterState(wrapped.required$, async state => {
-					await firstValueFrom(wrapped.required$);
+			await withinCounterState(wrapped.required$, async state => {
+				await firstValueFrom(wrapped.required$);
 
-					wrapped.unwrap();
+				wrapped.unwrap();
 
-					wrapped.toggle();
+				wrapped.toggle();
 
-					await expect(() =>
-						firstValueFrom(wrapped.required$),
-					).rejects.toThrow(EmptyError);
-					expect(state.counter).toBe(1);
-				});
-			},
-		);
+				await expect(() =>
+					firstValueFrom(wrapped.required$),
+				).rejects.toThrow(EmptyError);
+				expect(state.counter).toBe(1);
+			});
+		});
 
-		it(
-			"emits a new value when RxGdprGuard#required changes",
-			async () => {
-				expect.hasAssertions();
-				const guard = guardFactory({ required: false });
-				const wrapped = RxGdprGuard.wrap(guard);
+		it("emits a new value when RxGdprGuard#required changes", async () => {
+			expect.hasAssertions();
+			const guard = guardFactory({ required: false });
+			const wrapped = RxGdprGuard.wrap(guard);
 
-				await withinCounterState(wrapped.required$, async state => {
-					await firstValueFrom(wrapped.required$);
+			await withinCounterState(wrapped.required$, async state => {
+				await firstValueFrom(wrapped.required$);
 
-					wrapped.makeRequired();
+				wrapped.makeRequired();
 
-					const isEnabled = await firstValueFrom(wrapped.required$);
+				const isEnabled = await firstValueFrom(wrapped.required$);
 
-					expect(isEnabled).toStrictEqual(wrapped.enabled);
-					expect(state.counter).toBe(2);
-				});
-			},
-		);
+				expect(isEnabled).toStrictEqual(wrapped.enabled);
+				expect(state.counter).toBe(2);
+			});
+		});
 
 		it.each([
 			{
@@ -1419,27 +1373,24 @@ describe("rxGdprGuard", () => {
 			});
 		});
 
-		it(
-			"stops emitting values after RxGdprGuard#unwrap() has been called",
-			async () => {
-				expect.hasAssertions();
-				const guard = guardFactory();
-				const wrapped = RxGdprGuard.wrap(guard);
+		it("stops emitting values after RxGdprGuard#unwrap() has been called", async () => {
+			expect.hasAssertions();
+			const guard = guardFactory();
+			const wrapped = RxGdprGuard.wrap(guard);
 
-				await withinCounterState(wrapped.$, async state => {
-					await firstValueFrom(wrapped.$);
+			await withinCounterState(wrapped.$, async state => {
+				await firstValueFrom(wrapped.$);
 
-					wrapped.unwrap();
+				wrapped.unwrap();
 
-					wrapped.toggle();
+				wrapped.toggle();
 
-					await expect(() =>
-						firstValueFrom(wrapped.$),
-					).rejects.toThrow(EmptyError);
-					expect(state.counter).toBe(1);
-				});
-			},
-		);
+				await expect(() => firstValueFrom(wrapped.$)).rejects.toThrow(
+					EmptyError,
+				);
+				expect(state.counter).toBe(1);
+			});
+		});
 
 		it.each([
 			{
@@ -1523,7 +1474,6 @@ describe("rxGdprGuard", () => {
 				});
 			},
 		);
-
 
 		it.each([
 			{
