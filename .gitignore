@@ -1,6 +1,7 @@
 .husky/_/
 dist/
 lib/
+reports/
 ####
 tmp/
 .brackets.json
@@ -61,14 +62,10 @@ bower_components
 build/Release
 
 # Dependency directories
-node_modules/
 jspm_packages/
 
 # TypeScript v1 declaration files
 typings/
-
-# TypeScript cache
-*.tsbuildinfo
 
 # Optional npm cache directory
 .npm
@@ -121,7 +118,9 @@ typings/
 .dynamodb/
 
 # Temporary folders
-tmp/
 temp/
 
 # End of https://www.gitignore.io/api/node
+
+# stryker temp files
+.stryker-tmp

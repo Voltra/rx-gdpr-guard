@@ -8,7 +8,14 @@ const tseslint = require("typescript-eslint");
 
 module.exports = tseslint.config(
 	{
-		files: ["src/**/*.ts", "tests/**/*.ts", "*.config.js", "*.config.ts"],
+		files: [
+			"src/**/*.ts",
+			"tests/**/*.ts",
+			"*.config.js",
+			"*.config.mjs",
+			"*.config.ts",
+			"*.config.mts",
+		],
 		plugins: {
 			"@stylistic/ts": stylisticTs,
 		},
