@@ -2,7 +2,7 @@
 
 const eslint = require("@eslint/js");
 const eslintPrettier = require("eslint-config-prettier");
-const vitest = require("eslint-plugin-vitest");
+const vitest = require("@vitest/eslint-plugin");
 const stylisticTs = require("@stylistic/eslint-plugin-ts");
 const tseslint = require("typescript-eslint");
 
@@ -106,6 +106,11 @@ module.exports = tseslint.config(
 		settings: {
 			vitest: {
 				typecheck: true,
+			},
+		},
+		languageOptions: {
+			globals: {
+				...vitest.environments.env.globals,
 			},
 		},
 	},

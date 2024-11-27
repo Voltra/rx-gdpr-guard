@@ -10,7 +10,7 @@ import {
 	takeUntil,
 } from "rxjs";
 import { RxWrapper } from "./interfaces";
-import { deepEquals } from "./utils";
+import { asUnaryFn, deepEquals } from "./utils";
 
 /**
  * A wrapper/decorator class for rxjs around a {@link GdprGuard} instance (not one of its derived class)
@@ -129,7 +129,8 @@ export class RxGdprGuard
 	public lens<DerivedState>(
 		derive: (guard: RxGdprGuard) => DerivedState,
 	): Observable<DerivedState> {
-		return this.$.pipe(takeUntil(this.#sentinel$), map(derive));
+		const derive_ = asUnaryFn(derive);
+		return this.$.pipe(takeUntil(this.#sentinel$), map(derive_));
 	}
 
 	public map<T>(mapper: (guard: RxGdprGuard) => T): Observable<T> {
@@ -139,7 +140,8 @@ export class RxGdprGuard
 	public lensThrough<DerivedState>(
 		derive: (guard: RxGdprGuard) => ObservableInput<DerivedState>,
 	): Observable<DerivedState> {
-		return this.$.pipe(takeUntil(this.#sentinel$), mergeMap(derive));
+		const derive_ = asUnaryFn(derive);
+		return this.$.pipe(takeUntil(this.#sentinel$), mergeMap(derive_));
 	}
 
 	public flatMap<T>(
@@ -151,7 +153,8 @@ export class RxGdprGuard
 	public lensRaw<DerivedState>(
 		derive: (guardRaw: GdprGuardRaw) => DerivedState,
 	): Observable<DerivedState> {
-		return this.raw$.pipe(takeUntil(this.#sentinel$), map(derive));
+		const derive_ = asUnaryFn(derive);
+		return this.raw$.pipe(takeUntil(this.#sentinel$), map(derive_));
 	}
 
 	public mapRaw<T>(mapper: (guardRaw: GdprGuardRaw) => T): Observable<T> {
@@ -161,7 +164,8 @@ export class RxGdprGuard
 	public lensRawThrough<DerivedState>(
 		derive: (guardRaw: GdprGuardRaw) => ObservableInput<DerivedState>,
 	): Observable<DerivedState> {
-		return this.raw$.pipe(takeUntil(this.#sentinel$), mergeMap(derive));
+		const derive_ = asUnaryFn(derive);
+		return this.raw$.pipe(takeUntil(this.#sentinel$), mergeMap(derive_));
 	}
 
 	public flatMapRaw<T>(

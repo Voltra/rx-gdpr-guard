@@ -19,6 +19,7 @@ export default defineConfig({
 			tsconfig: "./tsconfig.tests.json",
 		},
 		// isolate: false,
+		setupFiles: [here("tests/global.setup.ts")],
 	},
 	resolve: {
 		alias: {

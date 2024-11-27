@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { RxGdprGuard } from "@/RxGdprGuard";
 import { GdprGuard, GdprGuardRaw, GdprStorage, makeGuard } from "gdpr-guard";
-import { wrapTestCases } from "../utils";
+import { rxTestScheduler, wrapTestCases } from "../utils";
 import {
 	assignableStorageCases,
 	guardStorageCases,
@@ -11,10 +11,13 @@ import {
 import {
 	EmptyError,
 	firstValueFrom,
+	from,
 	map,
 	Observable,
+	sequenceEqual,
 	Subscription,
 } from "rxjs";
+import "../augmentations.d.ts";
 
 const guardFactory = ({
 	name = "my-guard",
@@ -82,7 +85,9 @@ describe("rxGdprGuard", () => {
 	};
 
 	const lensTests = (methodName: "lens" | "map") => {
-		it.each(lensCases<GdprGuard>())("returns an Observable: %p", mapper => {
+		const testCases = lensCases<GdprGuard>();
+
+		it.each(testCases)("returns an Observable: %p", mapper => {
 			const guard = guardFactory();
 			const wrapped = RxGdprGuard.wrap(guard);
 
@@ -91,39 +96,261 @@ describe("rxGdprGuard", () => {
 			expect(result).toBeInstanceOf(Observable);
 		});
 
-		it.each(lensCases<GdprGuard>())(
+		it.each(testCases)(
 			"always resolves to the mapped value: %p",
 			async mapper => {
 				expect.hasAssertions();
 
 				const guard = guardFactory({ enabled: true });
 				const wrapped = RxGdprGuard.wrap(guard);
-
 				const obs = wrapped[methodName](mapper);
-				const r0 = await firstValueFrom(obs);
-				expect(r0).toStrictEqual(mapper(wrapped));
+
+				await expect(firstValueFrom(obs)).resolves.toStrictEqualVia(
+					() => mapper(wrapped),
+				);
 
 				wrapped.toggle();
-				const r1 = await firstValueFrom(obs);
-				expect(r1).toStrictEqual(mapper(wrapped));
+				await expect(firstValueFrom(obs)).resolves.toStrictEqualVia(
+					() => mapper(wrapped),
+				);
 
 				wrapped.enable();
-				const r2 = await firstValueFrom(obs);
-				expect(r2).toStrictEqual(mapper(wrapped));
+				await expect(firstValueFrom(obs)).resolves.toStrictEqualVia(
+					() => mapper(wrapped),
+				);
+			},
+		);
+
+		it.each(testCases)(
+			"emits a value upon being created by using the mapper: %p",
+			async mapper => {
+				expect.hasAssertions();
+
+				const fn = vi.fn(mapper);
+
+				const guard = guardFactory({ enabled: true });
+				const wrapped = RxGdprGuard.wrap(guard);
+
+				const obs = wrapped[methodName](fn);
+				await firstValueFrom(obs);
+				expect(fn).toHaveBeenCalledOnce();
+				expect(fn).toHaveBeenLastCalledWith(wrapped);
+				expect(fn).toHaveLastReturnedWith(mapper(wrapped));
+			},
+		);
+
+		it.each(testCases)(
+			"calls the mapper once each time the value changes: %p",
+			async mapper => {
+				expect.hasAssertions();
+
+				const fn = vi.fn(mapper);
+
+				const guard = guardFactory({ enabled: true });
+				const wrapped = RxGdprGuard.wrap(guard);
+
+				const obs = wrapped[methodName](fn);
+				await firstValueFrom(obs);
+				expect(fn).toHaveBeenCalledOnce();
+
+				wrapped.toggle();
+				await firstValueFrom(obs);
+				expect(fn).toHaveBeenCalledTimes(2);
+
+				wrapped.enable();
+				await firstValueFrom(obs);
+				expect(fn).toHaveBeenCalledTimes(3);
+			},
+		);
+
+		it.each(testCases)(
+			"always calls the mapper with this instance of RxGdprGuard: %p",
+			async mapper => {
+				expect.hasAssertions();
+
+				const fn = vi.fn(mapper);
+
+				const guard = guardFactory({ enabled: true });
+				const wrapped = RxGdprGuard.wrap(guard);
+
+				const obs = wrapped[methodName](fn);
+				await firstValueFrom(obs);
+				expect(fn).toHaveBeenLastCalledWith(wrapped);
+
+				wrapped.toggle();
+				await firstValueFrom(obs);
+				expect(fn).toHaveBeenLastCalledWith(wrapped);
+
+				wrapped.enable();
+				await firstValueFrom(obs);
+				expect(fn).toHaveBeenLastCalledWith(wrapped);
+			},
+		);
+
+		it.each(testCases)(
+			"doesn't call the mapper if the value hasn't changed: %p",
+			mapper => {
+				expect.hasAssertions();
+
+				const fn = vi.fn(mapper);
+
+				const guard = guardFactory({ enabled: true });
+
+				rxTestScheduler().run(({ expectObservable }) => {
+					const wrapped = RxGdprGuard.wrap(guard);
+
+					const obs = wrapped[methodName](fn);
+					wrapped.enable();
+					expectObservable(obs).toBe("a--", {
+						a: mapper(wrapped),
+					});
+				});
 			},
 		);
 	};
 
 	const lensThroughTests = (methodName: "lensThrough" | "flatMap") => {
-		it.each(lensThroughCases<GdprGuard>())(
-			"returns an Observable: %p",
-			mapper => {
-				const guard = guardFactory();
+		const testCases = lensThroughCases<GdprGuard>();
+
+		it.each(testCases)("returns an Observable: %p", mapper => {
+			const guard = guardFactory();
+			const wrapped = RxGdprGuard.wrap(guard);
+
+			const result = wrapped[methodName](mapper);
+
+			expect(result).toBeInstanceOf(Observable);
+		});
+
+		it.each(testCases)(
+			"always resolves to the flat-mapped observable: %p",
+			async mapper => {
+				expect.hasAssertions();
+
+				const guard = guardFactory({ enabled: true });
+				const wrapped = RxGdprGuard.wrap(guard);
+				const obs = wrapped[methodName](mapper);
+
+				// eslint-disable-next-line vitest/valid-expect
+				await expect(obs).rx.toStrictEqualVia(() =>
+					from(mapper(wrapped)),
+				);
+
+				wrapped.toggle();
+				// eslint-disable-next-line vitest/valid-expect
+				await expect(obs).rx.toStrictEqualVia(() =>
+					from(mapper(wrapped)),
+				);
+
+				wrapped.enable();
+				// eslint-disable-next-line vitest/valid-expect
+				await expect(obs).rx.toStrictEqualVia(() =>
+					from(mapper(wrapped)),
+				);
+			},
+		);
+
+		it.each(testCases)(
+			"emits a value upon being created by using the mapper: %p",
+			async mapper => {
+				expect.hasAssertions();
+
+				const fn = vi.fn(mapper);
+
+				const guard = guardFactory({ enabled: true });
 				const wrapped = RxGdprGuard.wrap(guard);
 
-				const result = wrapped[methodName](mapper);
+				const obs = wrapped[methodName](fn);
+				await firstValueFrom(obs);
+				expect(fn).toHaveBeenCalledOnce();
+				expect(fn).toHaveBeenLastCalledWith(wrapped);
 
-				expect(result).toBeInstanceOf(Observable);
+				try {
+					expect(fn.mock.results[0].value).toStrictEqual(
+						mapper(wrapped),
+					);
+				} catch (e) {
+					const obs = fn.mock.results[0].value as unknown;
+					if (!(obs instanceof Observable)) {
+						throw e;
+					}
+
+					const res = obs.pipe(sequenceEqual(mapper(wrapped)));
+
+					const sub = res.subscribe();
+
+					const sameObs = await firstValueFrom(res);
+
+					// eslint-disable-next-line vitest/no-conditional-expect
+					expect(sameObs).toBeTruthy();
+					sub.unsubscribe();
+				}
+			},
+		);
+
+		it.each(testCases)(
+			"calls the mapper once each time the value changes: %p",
+			async mapper => {
+				expect.hasAssertions();
+
+				const fn = vi.fn(mapper);
+
+				const guard = guardFactory({ enabled: true });
+				const wrapped = RxGdprGuard.wrap(guard);
+
+				const obs = wrapped[methodName](fn);
+				await firstValueFrom(obs);
+				expect(fn).toHaveBeenCalledOnce();
+
+				wrapped.toggle();
+				await firstValueFrom(obs);
+				expect(fn).toHaveBeenCalledTimes(2);
+
+				wrapped.enable();
+				await firstValueFrom(obs);
+				expect(fn).toHaveBeenCalledTimes(3);
+			},
+		);
+
+		it.each(testCases)(
+			"always calls the mapper with this instance of RxGdprGuard: %p",
+			async mapper => {
+				expect.hasAssertions();
+
+				const fn = vi.fn(mapper);
+
+				const guard = guardFactory({ enabled: true });
+				const wrapped = RxGdprGuard.wrap(guard);
+
+				const obs = wrapped[methodName](fn);
+				await firstValueFrom(obs);
+				expect(fn).toHaveBeenLastCalledWith(wrapped);
+
+				wrapped.toggle();
+				await firstValueFrom(obs);
+				expect(fn).toHaveBeenLastCalledWith(wrapped);
+
+				wrapped.enable();
+				await firstValueFrom(obs);
+				expect(fn).toHaveBeenLastCalledWith(wrapped);
+			},
+		);
+
+		it.each(testCases)(
+			"doesn't call the mapper if the value hasn't changed: %p",
+			async mapper => {
+				expect.hasAssertions();
+
+				const fn = vi.fn(mapper);
+
+				const guard = guardFactory({ enabled: true });
+
+				const wrapped = RxGdprGuard.wrap(guard);
+
+				const obs = wrapped[methodName](fn);
+				wrapped.enable();
+
+				// eslint-disable-next-line vitest/valid-expect
+				await expect(obs).rx.toStrictEqual(from(mapper(wrapped)));
 			},
 		);
 	};

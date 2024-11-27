@@ -5,9 +5,9 @@
 		"baseUrl": ".",
 		"paths": {
 			"@/*": ["./src/*"],
-			"@tests/*": ["./tests/*"],
+			"@tests/*": ["./tests/*"]
 		},
-		"tsBuildInfoFile": ".tests.tsbuildinfo"
+		"tsBuildInfoFile": ".tests.tsbuildinfo",
 	},
 	"ts-node": {
 		"require": ["tsconfig-paths/register"]
