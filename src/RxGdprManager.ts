@@ -167,6 +167,7 @@ export class RxGdprManager
 		});
 
 		this.#sentinel$.next(true);
+		this.#sentinel$.complete();
 
 		this.#bannerWasShown$.complete();
 		this.#enabled$.complete();

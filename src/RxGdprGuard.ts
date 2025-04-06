@@ -119,6 +119,8 @@ export class RxGdprGuard
 		const guard = this.underlyingGuard;
 
 		this.#sentinel$.next(true);
+		this.#sentinel$.complete();
+
 		this.#enabled$.complete();
 		this.#raw$.complete();
 		this.#required$.complete();

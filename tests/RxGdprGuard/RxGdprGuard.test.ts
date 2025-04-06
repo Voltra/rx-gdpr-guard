@@ -18,6 +18,7 @@ import {
 	Subscription,
 } from "rxjs";
 import "../augmentations.d.ts";
+// import { fromPromise } from "rxjs/internal/observable/innerFrom";
 
 const guardFactory = ({
 	name = "my-guard",
@@ -367,6 +368,22 @@ describe("rxGdprGuard", () => {
 				expect(result).toBeInstanceOf(Observable);
 			},
 		);
+
+		it.each(lensCases<GdprGuardRaw>())(
+			"closes the observable when the guard is unwrapped: %p",
+			mapper => {
+				const guard = guardFactory();
+				const wrapped = RxGdprGuard.wrap(guard);
+
+				const result = wrapped[methodName](mapper);
+
+				const subscription = result.subscribe();
+
+				wrapped.unwrap();
+
+				expect(subscription.closed).toBeTruthy();
+			},
+		);
 	};
 
 	const lensRawThroughTests = (
@@ -383,6 +400,26 @@ describe("rxGdprGuard", () => {
 				expect(result).toBeInstanceOf(Observable);
 			},
 		);
+
+		/*it.each(lensThroughCases<GdprGuardRaw>())(
+			"closes the observable when the guard is unwrapped: %p",
+			mapper => {
+				const guard = guardFactory();
+				const wrapped = RxGdprGuard.wrap(guard);
+
+				const result = wrapped[methodName](mapper);
+
+				const subscription = result.subscribe();
+
+				wrapped.unwrap();
+
+				expect(
+					fromPromise(Promise.resolve(69)).subscribe().closed,
+				).toBeTruthy();
+
+				expect(subscription.closed).toBeTruthy();
+			},
+		);*/
 	};
 
 	it("shares the same publicly visible state as the underlying guard", () => {
