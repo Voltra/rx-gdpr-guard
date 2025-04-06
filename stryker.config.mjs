@@ -14,4 +14,5 @@ const config = {
 	],
 	tsconfigFile: "typescript.tests.json",
 };
+
 export default config;

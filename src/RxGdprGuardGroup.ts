@@ -6,7 +6,6 @@ import {
 } from "gdpr-guard";
 import { RxWrapper } from "./interfaces";
 import {
-	BehaviorSubject,
 	distinctUntilChanged,
 	map,
 	mergeMap,
@@ -57,17 +56,23 @@ export class RxGdprGuardGroup
 	 */
 	public readonly $: Observable<RxGdprGuardGroup>;
 
+	// We use a ReplaySubject with a size of 1 as we really don't need an initial value
+	// but still want to be able to "broadcast" the latest values as they come
+	readonly #enabled$ = new ReplaySubject<boolean>(1);
+
+	// We use a ReplaySubject with a size of 1 as we really don't need an initial value
+	// but still want to be able to "broadcast" the latest values as they come
+	readonly #required$ = new ReplaySubject<boolean>(1);
+
+	// We use a ReplaySubject with a size of 1 as we really don't need an initial value
+	// but still want to be able to "broadcast" the latest values as they come
 	readonly #raw$ = new ReplaySubject<GdprGuardGroupRaw>(1);
-
-	readonly #enabled$ = new BehaviorSubject(false);
-
-	readonly #required$ = new BehaviorSubject(false);
 
 	/**
 	 * @internal
 	 * @private
 	 */
-	readonly #sentinel$ = new ReplaySubject<boolean>(1);
+	readonly #sentinel$ = new ReplaySubject<void>(1);
 
 	#subscriptions = [] as SubscriptionLike[];
 
@@ -199,7 +204,7 @@ export class RxGdprGuardGroup
 			group.addGuard(unwrapped);
 		});
 
-		this.#sentinel$.next(true);
+		this.#sentinel$.next();
 		this.#sentinel$.complete();
 		this.#enabled$.complete();
 		this.#raw$.complete();

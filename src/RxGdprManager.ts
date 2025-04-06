@@ -66,17 +66,23 @@ export class RxGdprManager
 
 	readonly #bannerWasShown$ = new BehaviorSubject(false);
 
-	readonly #enabled$ = new BehaviorSubject(true);
+	// We use a ReplaySubject with a size of 1 as we really don't need an initial value
+	// but still want to be able to "broadcast" the latest values as they come
+	readonly #enabled$ = new ReplaySubject<boolean>(1);
 
-	readonly #required$ = new BehaviorSubject(false);
+	// We use a ReplaySubject with a size of 1 as we really don't need an initial value
+	// but still want to be able to "broadcast" the latest values as they come
+	readonly #required$ = new ReplaySubject<boolean>(1);
 
+	// We use a ReplaySubject with a size of 1 as we really don't need an initial value
+	// but still want to be able to "broadcast" the latest values as they come
 	readonly #raw$ = new ReplaySubject<GdprManagerRaw>(1);
 
 	/**
 	 * @internal
 	 * @private
 	 */
-	readonly #sentinel$ = new ReplaySubject<boolean>(1);
+	readonly #sentinel$ = new ReplaySubject<void>(1);
 
 	#subscriptions = [] as SubscriptionLike[];
 
@@ -166,7 +172,7 @@ export class RxGdprManager
 			manager.addGroup(unwrapped);
 		});
 
-		this.#sentinel$.next(true);
+		this.#sentinel$.next();
 		this.#sentinel$.complete();
 
 		this.#bannerWasShown$.complete();

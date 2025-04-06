@@ -18,7 +18,6 @@ import {
 	Subscription,
 } from "rxjs";
 import "../augmentations.d.ts";
-// import { fromPromise } from "rxjs/internal/observable/innerFrom";
 
 const guardFactory = ({
 	name = "my-guard",
@@ -82,6 +81,15 @@ describe("rxGdprGuard", () => {
 			const decorated = RxGdprGuard[factoryName](guard);
 
 			expect(decorated).toBeInstanceOf(RxGdprGuard);
+		});
+
+		it("returns the parameter if it's already an RxGdprGuard instance", () => {
+			const guard = guardFactory();
+			const decorated = RxGdprGuard[factoryName](guard);
+
+			const result = RxGdprGuard[factoryName](decorated);
+
+			expect(result).toBe(decorated);
 		});
 	};
 
@@ -206,6 +214,24 @@ describe("rxGdprGuard", () => {
 						a: mapper(wrapped),
 					});
 				});
+			},
+		);
+
+		it.each(testCases)(
+			"closes the observable when the guard is unwrapped: %p",
+			async mapper => {
+				const guard = guardFactory();
+				const wrapped = RxGdprGuard.wrap(guard);
+
+				const result = wrapped[methodName](mapper);
+
+				const subscription = result.subscribe();
+
+				await firstValueFrom(result);
+
+				wrapped.unwrap();
+
+				expect(subscription.closed).toBeTruthy();
 			},
 		);
 	};
@@ -354,30 +380,49 @@ describe("rxGdprGuard", () => {
 				await expect(obs).rx.toStrictEqual(from(mapper(wrapped)));
 			},
 		);
-	};
 
-	const lensRawTests = (methodName: "lensRaw" | "mapRaw") => {
-		it.each(lensCases<GdprGuardRaw>())(
-			"returns an Observable: %p",
-			mapper => {
-				const guard = guardFactory();
-				const wrapped = RxGdprGuard.wrap(guard);
-
-				const result = wrapped[methodName](mapper);
-
-				expect(result).toBeInstanceOf(Observable);
-			},
-		);
-
-		it.each(lensCases<GdprGuardRaw>())(
+		it.each(testCases)(
 			"closes the observable when the guard is unwrapped: %p",
-			mapper => {
+			async mapper => {
 				const guard = guardFactory();
 				const wrapped = RxGdprGuard.wrap(guard);
 
 				const result = wrapped[methodName](mapper);
 
 				const subscription = result.subscribe();
+
+				await firstValueFrom(result);
+
+				wrapped.unwrap();
+
+				expect(subscription.closed).toBeTruthy();
+			},
+		);
+	};
+
+	const lensRawTests = (methodName: "lensRaw" | "mapRaw") => {
+		const testCases = lensCases<GdprGuardRaw>();
+
+		it.each(testCases)("returns an Observable: %p", mapper => {
+			const guard = guardFactory();
+			const wrapped = RxGdprGuard.wrap(guard);
+
+			const result = wrapped[methodName](mapper);
+
+			expect(result).toBeInstanceOf(Observable);
+		});
+
+		it.each(testCases)(
+			"closes the observable when the guard is unwrapped: %p",
+			async mapper => {
+				const guard = guardFactory();
+				const wrapped = RxGdprGuard.wrap(guard);
+
+				const result = wrapped[methodName](mapper);
+
+				const subscription = result.subscribe();
+
+				await firstValueFrom(result);
 
 				wrapped.unwrap();
 
@@ -389,21 +434,20 @@ describe("rxGdprGuard", () => {
 	const lensRawThroughTests = (
 		methodName: "lensRawThrough" | "flatMapRaw",
 	) => {
-		it.each(lensThroughCases<GdprGuardRaw>())(
-			"returns an Observable: %p",
-			mapper => {
-				const guard = guardFactory();
-				const wrapped = RxGdprGuard.wrap(guard);
+		const testCases = lensThroughCases<GdprGuardRaw>();
 
-				const result = wrapped[methodName](mapper);
+		it.each(testCases)("returns an Observable: %p", mapper => {
+			const guard = guardFactory();
+			const wrapped = RxGdprGuard.wrap(guard);
 
-				expect(result).toBeInstanceOf(Observable);
-			},
-		);
+			const result = wrapped[methodName](mapper);
 
-		/*it.each(lensThroughCases<GdprGuardRaw>())(
+			expect(result).toBeInstanceOf(Observable);
+		});
+
+		it.each(testCases)(
 			"closes the observable when the guard is unwrapped: %p",
-			mapper => {
+			async mapper => {
 				const guard = guardFactory();
 				const wrapped = RxGdprGuard.wrap(guard);
 
@@ -411,15 +455,15 @@ describe("rxGdprGuard", () => {
 
 				const subscription = result.subscribe();
 
-				wrapped.unwrap();
+				// We need to await the first value because promise are weird
+				// when it comes to RX testing
+				await firstValueFrom(result);
 
-				expect(
-					fromPromise(Promise.resolve(69)).subscribe().closed,
-				).toBeTruthy();
+				wrapped.unwrap();
 
 				expect(subscription.closed).toBeTruthy();
 			},
-		);*/
+		);
 	};
 
 	it("shares the same publicly visible state as the underlying guard", () => {
@@ -1144,7 +1188,7 @@ describe("rxGdprGuard", () => {
 
 		it("emits the initial value of RxGdprGuard#enabled as its first value", async () => {
 			expect.hasAssertions();
-			const guard = guardFactory();
+			const guard = guardFactory({ enabled: true });
 			const wrapped = RxGdprGuard.wrap(guard);
 
 			await withinCounterState(wrapped.enabled$, async state => {
